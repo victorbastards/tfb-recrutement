@@ -483,7 +483,13 @@ function buildUnitChips(){
 }
 function buildBoutiqueSel(){
   const el=document.getElementById("boutiqueSel");
-  el.innerHTML=`<option value="all">Toutes</option>`+DS.locations.map(l=>`<option value="${l.id}">${shortLoc(l.name)}</option>`).join("");
+  const rank=(l)=>{const a=shortLoc(l.name);const n=(l.name||"").toLowerCase();
+    if(/si[èe]ge/i.test(a))return 0; if(a==="Chalifert")return 1; if(a==="Lognes")return 2;
+    if(/lille/i.test(n)||a==="LBA"||a==="LNV")return 8;
+    if(/bordeaux/i.test(n)||a==="BCJ"||a==="BGH"||a==="BDJ")return 9;
+    return 5;};
+  const locs=[...DS.locations].sort((x,y)=>{const rx=rank(x),ry=rank(y);if(rx!==ry)return rx-ry;return shortLoc(x.name).localeCompare(shortLoc(y.name));});
+  el.innerHTML=`<option value="all">Toutes</option>`+locs.map(l=>`<option value="${l.id}">${shortLoc(l.name)}</option>`).join("");
   el.addEventListener("change",()=>{state.boutique=el.value;render();});
 }
 function buildJobSelect(){
