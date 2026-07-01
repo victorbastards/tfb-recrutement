@@ -389,8 +389,8 @@ function render(){
   const k=aggregate(dsDate);
   const s=k.summary;
   document.getElementById("cards").innerHTML=[
-    ["Postes ouverts",fmt(s.openJobs),""],["Candidatures",fmt(s.total),fmt(s.a30)+" sur 30 j"],
-    ["Embauches",fmt(s.hires),fmt(s.h30)+" sur 30 j"],["Pipeline actif",fmt(s.active),"en cours"],
+    ["Postes ouverts",fmt(s.openJobs),""],["Candidatures",fmt(s.total),"sur la période sélectionnée"],
+    ["Embauches",fmt(s.hires),"sur la période sélectionnée"],["Pipeline actif",fmt(s.active),"en cours"],
     ["Time-to-hire moyen",dj(s.tthAvg),"médiane "+dj(s.tthMed)],["Time-to-fill moyen",dj(s.ttfAvg),"poste → 1re embauche"],
     ["Taux de rejet",pc(s.rejRate),"rejetées / total"],["Acceptation d’offre",pc(s.offAcc),"embauchés / arrivés en offre"],
   ].map(([a,v,d])=>`<div class="card"><div class="k">${a}</div><div class="v">${v}</div>${d?`<div class="d">${d}</div>`:""}</div>`).join("");
@@ -511,14 +511,18 @@ const MIN_DATE="2025-10-01";
 function setupDates(){
   const fromEl=document.getElementById("from"),toEl=document.getElementById("to");
   fromEl.min=MIN_DATE; toEl.min=MIN_DATE;
+  const rangeBtns=[...document.querySelectorAll("[data-range]")];
+  const setActive=(r)=>rangeBtns.forEach(b=>{b.className="btn sm "+(b.dataset.range===r?"primary":"ghost");});
   const applyRange=(from,to)=>{fromEl.value=from||"";toEl.value=to||"";state.from=from||null;state.to=to||null;render();};
-  document.querySelectorAll("[data-range]").forEach(b=>b.addEventListener("click",()=>{
+  rangeBtns.forEach(b=>b.addEventListener("click",()=>{
     const r=b.dataset.range, today=new Date().toISOString().slice(0,10);
     if(r==="oct2025"){applyRange(MIN_DATE,today);}
     else{let from=new Date(Date.now()-(+r)*DAY).toISOString().slice(0,10);if(from<MIN_DATE)from=MIN_DATE;applyRange(from,today);}
+    setActive(r);
   }));
-  document.getElementById("apply").addEventListener("click",()=>{let f=fromEl.value||MIN_DATE;if(f<MIN_DATE)f=MIN_DATE;state.from=f;state.to=toEl.value||null;render();});
-  applyRange(MIN_DATE, new Date().toISOString().slice(0,10)); // défaut : depuis oct. 2025
+  document.getElementById("apply").addEventListener("click",()=>{let f=fromEl.value||MIN_DATE;if(f<MIN_DATE)f=MIN_DATE;state.from=f;state.to=toEl.value||null;setActive(null);render();});
+  [fromEl,toEl].forEach(el=>el.addEventListener("input",()=>setActive(null)));
+  applyRange(MIN_DATE, new Date().toISOString().slice(0,10)); setActive("oct2025"); // défaut : depuis oct. 2025
 }
 
 buildPoleChips();buildUnitChips();buildBoutiqueSel();buildJobSelect();setupSegs();setupDates();render();
