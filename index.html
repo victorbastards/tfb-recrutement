@@ -114,13 +114,11 @@
       <button data-sec="overview" class="active">Vue d’ensemble</button>
       <button data-sec="pipeline">Pipeline</button>
       <button data-sec="boutiques">Boutiques</button>
-      <button data-sec="sources">Sources</button>
+      <button data-sec="actives">Offres en ligne</button>
       <button data-sec="pilotage">Pilotage</button>
-      <button data-sec="alertes">Alertes</button>
-      <button data-sec="team">Équipe</button>
       <button data-sec="offre">Offre</button>
-      <button data-sec="infos">Définitions</button>
     </div>
+    <button class="btn ghost sm" id="defToggle" style="margin-left:auto;align-self:center;">📖 Définitions</button>
   </div>
 
   <div class="cards" id="cards"></div>
@@ -149,15 +147,9 @@
       <table id="boutiqueTable"><thead><tr><th>Boutique / site</th><th class="num">Postes ouverts</th><th class="num">Candidatures</th><th class="num">Embauches</th><th class="num">Taux d'embauche</th><th class="num">TTH (j)</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
-
-  <section data-sec="sources" class="hidden">
-    <div class="grid g2">
-      <div class="panel"><h2>Volume par canal</h2><div class="chart-box tall"><canvas id="srcVolChart"></canvas></div></div>
-      <div class="panel"><h2>Taux de conversion → embauche par canal</h2><div class="chart-box tall"><canvas id="srcConvChart"></canvas></div></div>
-    </div>
-    <div class="panel mt"><h2>Efficacité par canal</h2>
-      <div class="note">Le « taux de conversion » = embauches ÷ candidatures du canal (en %). ⚠️ Sur Teamtailor, les candidatures venues d'Indeed sont souvent comptées dans « Site carrière » (Indeed renvoie vers votre page carrière) — à garder en tête.</div>
-      <table id="srcTable"><thead><tr><th>Canal</th><th class="num">Candidatures</th><th class="num">% du mix</th><th class="num">Embauches</th><th class="num">Taux de conversion (%)</th><th class="num">TTH (j)</th></tr></thead><tbody></tbody></table>
+  <section data-sec="actives" class="hidden">
+    <div class="panel"><h2>Offres en ligne actives <small>— triées par ancienneté d'ouverture</small></h2>
+      <table id="activesTable"><thead><tr><th>Poste</th><th>Pôle</th><th>Unité</th><th>Boutique / site</th><th class="num">En ligne depuis</th><th class="num">Jours</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 
@@ -170,32 +162,7 @@
       <div class="panel"><h2>Candidatures — cette année vs N-1</h2><div class="chart-box"><canvas id="naChart"></canvas></div></div>
       <div class="panel"><h2>Embauches — cette année vs N-1</h2><div class="chart-box"><canvas id="nbChart"></canvas></div></div>
     </div>
-    <div class="grid g2 mt">
-      <div class="panel"><h2>Time-to-hire moyen par recruteur <small>— j</small></h2><div class="chart-box"><canvas id="tthChart"></canvas></div></div>
-      <div class="panel"><h2>Time-to-fill par pôle <small>— j</small></h2><div class="chart-box"><canvas id="ttfChart"></canvas></div></div>
-    </div>
-  </section>
-
-  <section data-sec="alertes" class="hidden">
-    <div class="cards" id="alertCards"></div>
-    <div class="grid g2">
-      <div class="panel"><h2>Postes à risque <small>— pipeline faible ou ouverts trop longtemps</small></h2>
-        <table id="riskTable"><thead><tr><th>Poste</th><th>Boutique</th><th class="num">Jours ouv.</th><th class="num">Actifs</th><th>Alerte</th></tr></thead><tbody></tbody></table>
-      </div>
-      <div class="panel"><h2>Goulots <small>— ancienneté moyenne dans l'étape actuelle (j)</small></h2><div class="chart-box"><canvas id="stageAgeChart"></canvas></div></div>
-    </div>
-  </section>
-
-  <section data-sec="team" class="hidden">
-    <div class="panel"><h2>Performance par recruteur</h2>
-      <table id="recTable"><thead><tr><th>Recruteur</th><th class="num">Postes</th><th class="num">Cand.</th><th class="num">Emb.</th><th class="num">TTH (j)</th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="grid g2 mt">
-      <div class="panel"><h2 id="orgTitleT">Par pôle</h2><div class="chart-box"><canvas id="orgChartT"></canvas></div></div>
-      <div class="panel"><h2>Par boutique / site</h2>
-        <table id="locTable"><thead><tr><th>Boutique</th><th class="num">Cand.</th><th class="num">Emb.</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
+    <div class="panel mt"><h2>Time-to-fill par pôle <small>— délai ouverture → 1re embauche (j)</small></h2><div class="chart-box"><canvas id="ttfChart"></canvas></div></div>
   </section>
 
   <section data-sec="offre" class="hidden">
@@ -211,11 +178,12 @@
     </div>
   </section>
 
-  <section data-sec="infos" class="hidden">
+  <div id="defsPanel" class="hidden" style="margin-top:14px;">
     <div class="panel">
       <h2>Définitions des indicateurs</h2>
       <table class="defs">
         <tr><td>Postes ouverts</td><td>Nombre d'offres actuellement publiées / actives dans Teamtailor.</td></tr>
+        <tr><td>En ligne depuis</td><td>Date d'ouverture / publication de l'offre dans Teamtailor (ancienneté en jours).</td></tr>
         <tr><td>Candidatures</td><td>Nombre total de candidatures reçues sur la période et le périmètre sélectionnés.</td></tr>
         <tr><td>Embauches</td><td>Candidatures arrivées au stade « Embauché ».</td></tr>
         <tr><td>Pipeline actif</td><td>Candidatures encore en cours (ni embauchées, ni rejetées).</td></tr>
@@ -224,17 +192,14 @@
         <tr><td>Taux de rejet</td><td>Candidatures rejetées ÷ total des candidatures (en %).</td></tr>
         <tr><td>Acceptation d'offre</td><td>Embauchés ÷ candidats arrivés au stade « Offre » (en %). Mesure combien d'offres aboutissent.</td></tr>
         <tr><td>Entonnoir</td><td>Nombre de candidatures ayant atteint chaque étape (Réception → Présélection → Entretien → Offre → Embauché).</td></tr>
-        <tr><td>Taux de conversion (Sources)</td><td>Embauches ÷ candidatures pour un canal donné.</td></tr>
         <tr><td>Objectif vs réalisé</td><td>Embauches réalisées sur 12 mois glissants comparées à l'objectif d'embauche par pôle.</td></tr>
         <tr><td>N-1</td><td>Comparaison avec la même période de l'année précédente.</td></tr>
-        <tr><td>Postes à risque</td><td>Postes ouverts depuis longtemps sans embauche, ou avec très peu de candidats actifs.</td></tr>
-        <tr><td>Candidatures qui stagnent</td><td>Candidatures actives sans changement d'étape depuis plus de 21 jours.</td></tr>
-        <tr><td>Goulots</td><td>Ancienneté moyenne des candidatures dans leur étape actuelle (repère les blocages).</td></tr>
-        <tr><td>Pôle / Unité / Boutique</td><td>Pôle = département Teamtailor (Vente, Production…). Unité = sous-groupe (B1-B3 / P1-P3). Boutique = localisation.</td></tr>
-        <tr><td>Recruteur</td><td>Utilisateur Teamtailor associé au poste / à la candidature.</td></tr>
+        <tr><td>Pôle</td><td>Vente · Production (production en boutique) · Laboratoire (labo central Chalifert &amp; Lognes) · Siège (fonctions support). Le classement production/labo dépend du lieu.</td></tr>
+        <tr><td>Unité (grade)</td><td>Vente : B1 Conseiller de Vente · B2 Assistant Store Manager · B3 Store Manager. Production : P1 Boulanger/Ouvrier · P2 Sous-chef ou Volant · P3 Chef ou Responsable.</td></tr>
+        <tr><td>Boutique / site</td><td>Localisation de l'offre, affichée en acronyme.</td></tr>
       </table>
     </div>
-  </section>
+  </div>
 
   <div class="foot" id="foot"></div>
 </div>
@@ -263,6 +228,8 @@ const jobById=new Map(DS.jobs.map(j=>[j.id,j]));
 const locById=new Map(DS.locations.map(l=>[l.id,l]));
 const userById=new Map(DS.users.map(u=>[u.id,u]));
 const locName=(j)=>{const id=(j.locationIds||[])[0];return id&&locById.get(id)?locById.get(id).name:"—";};
+const LOC_ACRO=[[/oberkampf/i,"OBK"],[/saint.?ferdinand/i,"SFD"],[/saint.?denis/i,"SDN"],[/pigalle/i,"PIG"],[/s[eè]vres/i,"SEV"],[/temple/i,"TMP"],[/l[eé]vis/i,"LEV"],[/parmentier|neuilly/i,"NEU"],[/rambuteau/i,"RAM"],[/louise michel|levallois/i,"LVA"],[/\bbac\b/i,"BAC"],[/pompe/i,"POM"],[/chalifert/i,"Chalifert"],[/lognes/i,"Lognes"],[/si[\u00e8e]ge/i,"Siège"],[/bordeaux.*(saint.?georges|st.?georges)/i,"BDX-SG"],[/bordeaux.*grands? hommes/i,"BDX-GH"],[/bordeaux.*dijeaux/i,"BDX-DIJ"],[/basse.*lille|lille.*basse/i,"LIL-B"],[/neuve.*lille|lille.*neuve/i,"LIL-N"]];
+function shortLoc(name){if(!name||name==="—")return "—";for(const it of LOC_ACRO){if(it[0].test(name))return it[1];}return name.split(" - ")[0].trim();}
 
 function filterDataset(opt){
   const {pole,unit,boutique,channel,from,to}=opt;
@@ -396,7 +363,7 @@ function orgBreakdown(k){
   return {title:"Candidatures par pôle",rows:k.byPole};
 }
 function funnelCfg(k){return {type:"bar",data:{labels:k.funnel.map(f=>f.label),datasets:[{data:k.funnel.map(f=>f.count),backgroundColor:C.c1,borderRadius:6,barThickness:24}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})};}
-function convHTML(k){return k.conv.map(c=>`<div class="step">${c.from} → ${c.to} : <b>${fmt(c.rate)} %</b></div>`).join("");}
+function convHTML(k){const total=k.funnel.length?k.funnel[0].count:0;let h="";k.funnel.forEach((f,i)=>{const pt=total?r1(f.count/total*100):0;h+=`<div class="step"><b>${f.label}</b> : ${fmt(f.count)} <span style="color:var(--muted);font-weight:400;">(${fmt(pt)} % du total)</span></div>`;if(i<k.funnel.length-1){const nx=k.funnel[i+1];const rt=f.count?r1(nx.count/f.count*100):0;h+=`<div style="color:var(--muted);font-size:12px;margin:0 0 6px 12px;">\u2193 ${fmt(rt)} % passent \u00e0 l\u2019\u00e9tape suivante</div>`;}});return h;}
 function volSeries(ds){
   const from=state.from?new Date(state.from):new Date(Date.now()-365*DAY);
   const to=state.to?new Date(state.to):new Date();
@@ -433,8 +400,8 @@ function render(){
   if(sec==="overview"){
     const vs=volSeries(dsDate);
     chart("volChart",{data:{labels:vs.labels,datasets:[
-      {type:"bar",label:"Candidatures",data:vs.apps,backgroundColor:"rgba(200,119,46,0.55)",borderRadius:4},
-      {type:"line",label:"Embauches",data:vs.hires,borderColor:C.c3,backgroundColor:C.c3,tension:.3,pointRadius:3,borderWidth:2}]},options:base()});
+      {type:"bar",label:"Candidatures",data:vs.apps,backgroundColor:"rgba(200,119,46,0.55)",borderRadius:4,yAxisID:"y",order:2},
+      {type:"line",label:"Embauches",data:vs.hires,borderColor:C.c3,backgroundColor:C.c3,tension:.3,pointRadius:3,borderWidth:2,yAxisID:"y1",order:1}]},options:base({scales:{x:{ticks:{color:C.muted,font:{size:11}},grid:{color:grid}},y:{beginAtZero:true,position:"left",title:{display:true,text:"Candidatures",color:C.muted},ticks:{color:C.muted},grid:{color:grid}},y1:{beginAtZero:true,position:"right",title:{display:true,text:"Embauches",color:C.c3},ticks:{color:C.c3},grid:{drawOnChartArea:false}}}})});
     chart("funnelChartO",funnelCfg(k));document.getElementById("convO").innerHTML=convHTML(k);
     const org=orgBreakdown(k);document.getElementById("orgTitleO").textContent=org.title;
     chart("orgChartO",{type:"bar",data:{labels:org.rows.map(d=>d.name),datasets:[{label:"Candidatures",data:org.rows.map(d=>d.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:org.rows.map(d=>d.hires),backgroundColor:C.c3,borderRadius:4}]},options:base()});
@@ -442,13 +409,7 @@ function render(){
   if(sec==="pipeline"){
     chart("funnelChartP",funnelCfg(k));document.getElementById("convP").innerHTML=convHTML(k);
     chart("stageChart",{type:"bar",data:{labels:k.stageDist.map(s=>s.name),datasets:[{data:k.stageDist.map(s=>s.count),backgroundColor:C.c2,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
-    document.querySelector("#jobTable tbody").innerHTML=k.topJobs.slice(0,15).map(j=>`<tr class="clickable" data-job="${j.jobId}"><td>${j.title}</td><td>${j.pole||"—"}</td><td>${j.boutique||"—"}</td><td class="num">${fmt(j.applications)}</td><td class="num">${fmt(j.hires)}</td><td class="num">${j.applications?fmt(r1(j.hires/j.applications*100))+" %":"—"}</td></tr>`).join("");
-  }
-  if(sec==="sources"){
-    const bs=k.bySource;
-    chart("srcVolChart",{type:"bar",data:{labels:bs.map(s=>s.name),datasets:[{label:"Candidatures",data:bs.map(s=>s.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:bs.map(s=>s.hires),backgroundColor:C.c3,borderRadius:4}]},options:base({indexAxis:"y"})});
-    chart("srcConvChart",{type:"bar",data:{labels:bs.map(s=>s.name),datasets:[{data:bs.map(s=>s.convRate),backgroundColor:bs.map((_,i)=>PAL[i%PAL.length]),borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
-    document.querySelector("#srcTable tbody").innerHTML=bs.map(s=>`<tr><td>${s.name}</td><td class="num">${fmt(s.applications)}</td><td class="num">${fmt(s.share)} %</td><td class="num">${fmt(s.hires)}</td><td class="num">${fmt(s.convRate)} %</td><td class="num">${s.tth==null?"—":fmt(s.tth)}</td></tr>`).join("");
+    document.querySelector("#jobTable tbody").innerHTML=k.topJobs.slice(0,15).map(j=>`<tr class="clickable" data-job="${j.jobId}"><td>${j.title}</td><td>${j.pole||"—"}</td><td>${shortLoc(j.boutique)}</td><td class="num">${fmt(j.applications)}</td><td class="num">${fmt(j.hires)}</td><td class="num">${j.applications?fmt(r1(j.hires/j.applications*100))+" %":"—"}</td></tr>`).join("");
   }
   if(sec==="pilotage"){
     const dsOrg=filterDataset(Object.assign({},state,{from:null,to:null}));
@@ -468,33 +429,19 @@ function render(){
     chart("naChart",{data:{labels,datasets:[{type:"line",label:"Cette année",data:cur,borderColor:C.c1,backgroundColor:C.c1,tension:.3,pointRadius:2,borderWidth:2},{type:"line",label:"N-1",data:prev,borderColor:C.muted,borderDash:[6,4],tension:.3,pointRadius:0,borderWidth:2}]},options:base()});
     const curH=ko.hot24.slice(12).map(m=>m.count), prevH=ko.hot24.slice(0,12).map(m=>m.count);
     chart("nbChart",{data:{labels,datasets:[{type:"bar",label:"Cette année",data:curH,backgroundColor:C.c3,borderRadius:3},{type:"line",label:"N-1",data:prevH,borderColor:C.muted,borderDash:[6,4],tension:.3,pointRadius:0,borderWidth:2}]},options:base()});
-    const recs=k.byRec.filter(r=>r.tth!=null).slice(0,10);
-    chart("tthChart",{type:"bar",data:{labels:recs.map(r=>r.name),datasets:[{data:recs.map(r=>r.tth),backgroundColor:C.c4,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
     chart("ttfChart",{type:"bar",data:{labels:k.ttfByPole.map(p=>p.name),datasets:[{data:k.ttfByPole.map(p=>p.ttf),backgroundColor:C.c2,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
-  }
-  if(sec==="alertes"){
-    const dsOrg=filterDataset(Object.assign({},state,{from:null,to:null}));
-    const al=computeAlerts(dsOrg);
-    document.getElementById("alertCards").innerHTML=[
-      ["Postes à risque",fmt(al.risky.length),"sur "+fmt(dsOrg.jobs.filter(j=>OPEN.has(j.status)).length)+" postes ouverts"],
-      ["Candidatures qui stagnent",fmt(al.stalledCount),">21 j sans mouvement, sur "+fmt(al.activeCount)+" actives"],
-      ["Étape la plus lente",al.stageAge.length?al.stageAge.slice().sort((a,b)=>b.avg-a.avg)[0].label:"—",al.stageAge.length?dj(al.stageAge.slice().sort((a,b)=>b.avg-a.avg)[0].avg)+" en moyenne":""],
-    ].map(([a,v,d])=>`<div class="card alert"><div class="k">${a}</div><div class="v sm">${v}</div>${d?`<div class="d">${d}</div>`:""}</div>`).join("");
-    document.querySelector("#riskTable tbody").innerHTML=al.risky.slice(0,15).map(r=>`<tr><td>${r.title}</td><td>${r.boutique}</td><td class="num">${fmt(r.daysOpen)}</td><td class="num">${fmt(r.active)}</td><td>${r.reasons.map(x=>`<span class="pill ${x.includes(">60")?"r":"w"}">${x}</span>`).join(" ")}</td></tr>`).join("")||`<tr><td colspan="5" style="color:var(--muted)">Aucun poste à risque 🎉</td></tr>`;
-    chart("stageAgeChart",{type:"bar",data:{labels:al.stageAge.map(s=>s.label),datasets:[{data:al.stageAge.map(s=>s.avg),backgroundColor:C.c5,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
   }
   if(sec==="boutiques"){
     const bs=boutiqueStats(dsDate);
-    chart("boutiqueChart",{type:"bar",data:{labels:bs.map(b=>b.name),datasets:[
+    chart("boutiqueChart",{type:"bar",data:{labels:bs.map(b=>shortLoc(b.name)),datasets:[
       {label:"Candidatures",data:bs.map(b=>b.applications),backgroundColor:C.c1,borderRadius:4},
       {label:"Embauches",data:bs.map(b=>b.hires),backgroundColor:C.c3,borderRadius:4}]},options:base({indexAxis:"y"})});
-    document.querySelector("#boutiqueTable tbody").innerHTML=bs.map(b=>`<tr><td>${b.name}</td><td class="num">${fmt(b.openJobs)}</td><td class="num">${fmt(b.applications)}</td><td class="num">${fmt(b.hires)}</td><td class="num">${b.applications?fmt(r1(b.hires/b.applications*100))+" %":"—"}</td><td class="num">${b.tth==null?"—":fmt(b.tth)}</td></tr>`).join("");
+    document.querySelector("#boutiqueTable tbody").innerHTML=bs.map(b=>`<tr><td>${shortLoc(b.name)}</td><td class="num">${fmt(b.openJobs)}</td><td class="num">${fmt(b.applications)}</td><td class="num">${fmt(b.hires)}</td><td class="num">${b.applications?fmt(r1(b.hires/b.applications*100))+" %":"—"}</td><td class="num">${b.tth==null?"—":fmt(b.tth)}</td></tr>`).join("");
   }
-  if(sec==="team"){
-    document.querySelector("#recTable tbody").innerHTML=k.byRec.map(r=>`<tr><td>${r.name}</td><td class="num">${fmt(r.openJobs)}</td><td class="num">${fmt(r.applications)}</td><td class="num">${fmt(r.hires)}</td><td class="num">${r.tth==null?"—":fmt(r.tth)}</td></tr>`).join("");
-    const org=orgBreakdown(k);document.getElementById("orgTitleT").textContent=org.title;
-    chart("orgChartT",{type:"bar",data:{labels:org.rows.map(d=>d.name),datasets:[{label:"Candidatures",data:org.rows.map(d=>d.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:org.rows.map(d=>d.hires),backgroundColor:C.c3,borderRadius:4}]},options:base()});
-    document.querySelector("#locTable tbody").innerHTML=k.byLoc.map(l=>`<tr><td>${l.name}</td><td class="num">${fmt(l.applications)}</td><td class="num">${fmt(l.hires)}</td></tr>`).join("");
+  if(sec==="actives"){
+    const now=Date.now();
+    const rows=dsDate.jobs.filter(j=>OPEN.has(j.status)).map(j=>({id:j.id,title:j.title,pole:j.pole,unit:j.unit,loc:shortLoc(locName(j)),createdAt:j.createdAt,days:Math.round(days(j.createdAt,new Date(now).toISOString())||0)})).sort((a,b)=>b.days-a.days);
+    document.querySelector("#activesTable tbody").innerHTML=rows.map(j=>`<tr class="clickable" data-job="${j.id}"><td>${j.title}</td><td>${j.pole||"—"}</td><td>${j.unit||"—"}</td><td>${j.loc}</td><td class="num">${j.createdAt?new Date(j.createdAt).toLocaleDateString("fr-FR"):"—"}</td><td class="num">${fmt(j.days)}</td></tr>`).join("")||`<tr><td colspan="6" style="color:var(--muted)">Aucune offre active sur ce périmètre</td></tr>`;
   }
   if(sec==="offre")renderJob();
 
@@ -511,7 +458,7 @@ function renderJob(){
   const d=jobDetail(state.selectedJobId); if(!d)return;
   const {job,daysOpen,k}=d, s=k.summary;
   document.getElementById("jobTitle").textContent=job.title;
-  document.getElementById("jobMeta").innerHTML=`${job.pole}${job.unit?" · "+job.unit:""} · ${locName(job)} · recruteur : ${(userById.get(job.recruiterId)||{}).name||"—"} · statut : ${job.status} · ouvert depuis ${fmt(daysOpen)} j`;
+  document.getElementById("jobMeta").innerHTML=`${job.pole}${job.unit?" · "+job.unit:""} · ${shortLoc(locName(job))} · recruteur : ${(userById.get(job.recruiterId)||{}).name||"—"} · statut : ${job.status} · ouvert depuis ${fmt(daysOpen)} j`;
   document.getElementById("jobCards").innerHTML=[
     ["Candidatures",fmt(s.total),""],["Pipeline actif",fmt(s.active),"en cours"],
     ["Embauches",fmt(s.hires),""],["Time-to-hire",dj(s.tthAvg),"médiane "+dj(s.tthMed)],
@@ -536,7 +483,7 @@ function buildUnitChips(){
 }
 function buildBoutiqueSel(){
   const el=document.getElementById("boutiqueSel");
-  el.innerHTML=`<option value="all">Toutes</option>`+DS.locations.map(l=>`<option value="${l.id}">${l.name}</option>`).join("");
+  el.innerHTML=`<option value="all">Toutes</option>`+DS.locations.map(l=>`<option value="${l.id}">${shortLoc(l.name)} — ${l.name}</option>`).join("");
   el.addEventListener("change",()=>{state.boutique=el.value;render();});
 }
 function buildJobSelect(){
@@ -547,6 +494,7 @@ function buildJobSelect(){
 function goSection(sec){state.section=sec;document.querySelectorAll("#sectionSeg button").forEach(x=>x.classList.toggle("active",x.dataset.sec===sec));document.querySelectorAll("section[data-sec]").forEach(x=>x.classList.toggle("hidden",x.dataset.sec!==sec));render();}
 function setupSegs(){
   document.getElementById("sectionSeg").addEventListener("click",e=>{const b=e.target.closest("[data-sec]");if(!b)return;goSection(b.dataset.sec);});
+  const dtg=document.getElementById("defToggle");if(dtg)dtg.addEventListener("click",()=>{document.getElementById("defsPanel").classList.toggle("hidden");});
   document.addEventListener("click",e=>{
     const row=e.target.closest("tr.clickable[data-job]");
     if(row){if(state.section!=="offre")state.prevSection=state.section;state.selectedJobId=row.dataset.job;goSection("offre");const js=document.getElementById("jobSelect");if(js)js.value=state.selectedJobId;return;}

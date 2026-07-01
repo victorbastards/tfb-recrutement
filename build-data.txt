@@ -99,6 +99,39 @@ function canonCategory(raw) {
   return s;
 }
 
+// --- Mapping The French Bastards : pôle + grade (unit) ---
+// Le pôle dépend du LIEU pour la production : Chalifert/Lognes = Laboratoire,
+// toute autre production = Production (production boutique). Vente = Vente,
+// fonctions support = Siège. Les grades se déduisent de l'intitulé du poste.
+function venteGrade(t) {
+  if (/assistant.*store manager|adjoint|assistant\(e\)\s*store/.test(t)) return "B2";
+  if (/store manager|responsable\s*(de\s*)?boutique/.test(t)) return "B3";
+  if (/conseiller|vendeur|barista|[ée]quipier|\bvente\b|caisse/.test(t)) return "B1";
+  return null;
+}
+function prodGrade(t) {
+  if (/sous.?chef|chef de partie|volant/.test(t)) return "P2";
+  if (/\bchef\b|responsable/.test(t)) return "P3";
+  return "P1";
+}
+function classifyJob(deptName, title, locNames) {
+  const t = (title || "").toLowerCase();
+  const dep = (deptName || "").toLowerCase();
+  const isLab = (locNames || []).some((n) => /chalifert|lognes/i.test(n || ""));
+  const isProdDept = ["laboratoire", "boulangerie", "production"].includes(dep);
+  const isProdRole = /boulanger|p[aâ]tissier|tourier|commis|ouvrier|pr[ée]par|snack|cuisine|p[eé]trin|\bfour\b|plongeur|\bhub\b|production/.test(t);
+  const isVenteDept = dep === "vente";
+  const isVenteRole = /conseiller|vendeur|store manager|barista|[ée]quipier|caisse/.test(t);
+  // Vente prioritaire si département vente ou intitulé clairement vente et pas un rôle de prod
+  if ((isVenteDept || isVenteRole) && !isProdDept && !isProdRole) {
+    return { pole: "Vente", unit: venteGrade(t) };
+  }
+  if (isProdDept || isProdRole) {
+    return isLab ? { pole: "Laboratoire", unit: null } : { pole: "Production", unit: prodGrade(t) };
+  }
+  return { pole: "Siège", unit: null };
+}
+
 // Construit le dataset normalisé à partir de l'API.
 async function fetchDataset() {
   // 1. Référentiels
@@ -172,22 +205,25 @@ async function fetchDataset() {
   }
   const jobsRaw = { data: _jobsAll };
   const deptNameById = new Map(departments.map((d) => [d.id, d.name]));
+  const locNameById = new Map(locations.map((l) => [l.id, l.name]));
   const jobs = jobsRaw.data.map((j) => {
     const departmentId = rel(j, "department");
+    const title = attr(j, "title") || "—";
+    const deptName = (departmentId && deptNameById.get(departmentId)) || "";
+    const locationIds = rel(j, "locations") || [];
+    const locNames = locationIds.map((id) => locNameById.get(id) || "");
+    const { pole, unit } = classifyJob(deptName, title, locNames);
     return {
       id: String(j.id),
-      title: attr(j, "title") || "—",
+      title,
       status: attr(j, "status") || "unknown",
       createdAt: attr(j, "created-at"),
       recruiterId: rel(j, "user"),
       departmentId,
-      // MAPPING ORGANISATION (à ajuster selon ta structure Teamtailor) :
-      // par défaut le "pôle" = le département Teamtailor. La sous-unité (B1/B2/P1…)
-      // n'existe pas nativement : à mapper sur une "team", une division ou un champ
-      // personnalisé une fois la structure connue (cf. inspect-teamtailor.mjs).
-      pole: (departmentId && deptNameById.get(departmentId)) || "—",
-      unit: null,
-      locationIds: rel(j, "locations") || [],
+      department: deptName || null,
+      pole,
+      unit,
+      locationIds,
     };
   });
 
@@ -235,9 +271,9 @@ async function fetchDataset() {
     departments,
     locations,
     // Dimensions enrichies pour le dashboard local.
-    poles: [...new Set(jobs.map((j) => j.pole).filter(Boolean))],
-    units: {}, // { "Vente": ["B1","B2"], ... } une fois le mapping des unités défini
-    targets: {}, // objectifs mensuels d'embauche par pôle, ex: { Vente: 9 }
+    poles: ["Vente", "Production", "Laboratoire", "Siège"],
+    units: { Vente: ["B1", "B2", "B3"], Production: ["P1", "P2", "P3"] },
+    targets: {},
     sources: [...new Set(applications.map((a) => a.source).filter(Boolean))],
   };
 }
