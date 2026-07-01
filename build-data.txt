@@ -61,7 +61,7 @@ async function fetchAll(path, params = {}, max = 5000) {
   const included = [];
   let guard = 0;
 
-  while (url && data.length < max && guard < 400) {
+  while (url && data.length < max && guard < 800) {
     guard++;
     const json = await request(url, c);
     if (Array.isArray(json.data)) data.push(...json.data);
@@ -165,8 +165,15 @@ async function fetchDataset() {
     };
   });
 
-  // 3. Candidatures (le plus gros volume) — on inclut le candidat.
-  const appsRaw = await fetchAll("/v1/job-applications", { include: "candidate" });
+  // 3. Candidatures (le plus gros volume). On inclut job/stage/user/candidate pour
+  // que l'API renvoie les liens (sinon relationships.data est absent -> jobId/stageId nuls),
+  // et on trie du plus récent au plus ancien (sort=-created-at) pour que le plafond
+  // ne coupe pas les candidatures récentes.
+  const appsRaw = await fetchAll(
+    "/v1/job-applications",
+    { include: "job,stage,user,candidate", sort: "-created-at" },
+    15000
+  );
   const applications = appsRaw.data.map((a) => {
     const stageId = rel(a, "stage");
     const stage = stageId ? stageById.get(stageId) : null;
