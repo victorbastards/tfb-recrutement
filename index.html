@@ -289,7 +289,7 @@ function aggregate(ds){
     const rid=a.recruiterId||(job&&job.recruiterId);
     if(rid){const t=rm.get(rid)||{name:(userById.get(rid)||{}).name||"—",openJobs:0,applications:0,hires:0,_t:[]};t.applications++;if(isHired(a)){t.hires++;const d=days(a.createdAt,a.changedStageAt);if(d!=null&&d>=0)t._t.push(d);}rm.set(rid,t);}
     const sc=a.source||"Autre";{const t=sm.get(sc)||{name:sc,applications:0,hires:0,_t:[]};t.applications++;if(isHired(a)){t.hires++;const d=days(a.createdAt,a.changedStageAt);if(d!=null&&d>=0)t._t.push(d);}sm.set(sc,t);}
-    if(isAct(a)&&a.stageId){const n=(stageById.get(a.stageId)||{}).name||STAGE_LABELS[a.stageType]||"—";sd.set(n,(sd.get(n)||0)+1);}
+    if(isAct(a)&&a.stageId){const raw=(((stageById.get(a.stageId)||{}).name)||STAGE_LABELS[a.stageType]||"—").trim().replace(/\s+/g," ");const key=raw.toLowerCase();let e=sd.get(key);if(!e){e={count:0,variants:{}};sd.set(key,e);}e.count++;e.variants[raw]=(e.variants[raw]||0)+1;}
   }
   for(const j of ds.jobs){if(j.recruiterId&&OPEN.has(j.status)){const t=rm.get(j.recruiterId);if(t)t.openJobs++;else rm.set(j.recruiterId,{name:(userById.get(j.recruiterId)||{}).name||"—",openJobs:1,applications:0,hires:0,_t:[]});}}
   const total=apps.length;
@@ -308,7 +308,7 @@ function aggregate(ds){
     byLoc:[...lm.values()].sort((a,b)=>b.applications-a.applications),
     byRec:[...rm.values()].map(r=>({name:r.name,openJobs:r.openJobs,applications:r.applications,hires:r.hires,tth:r._t.length?r1(mean(r._t)):null})).sort((a,b)=>b.hires-a.hires||b.applications-a.applications),
     bySource:[...sm.values()].map(s=>({name:s.name,applications:s.applications,hires:s.hires,convRate:s.applications?r1(s.hires/s.applications*100):0,tth:s._t.length?r1(mean(s._t)):null,share:total?r1(s.applications/total*100):0})).sort((a,b)=>b.applications-a.applications),
-    stageDist:[...sd.entries()].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,12),
+    stageDist:[...sd.values()].map(e=>({name:Object.entries(e.variants).sort((a,b)=>b[1]-a[1])[0][0],count:e.count})).sort((a,b)=>b.count-a.count).slice(0,12),
   };
 }
 
