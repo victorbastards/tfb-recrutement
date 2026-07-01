@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TFB · Dashboard Recrutement</title>
+<style>
+  :root{
+    --bg:#FAF6F0; --panel:#FFFFFF; --panel2:#F5EEE4; --line:#ECE3D7;
+    --text:#2B2018; --muted:#8A7B6B; --accent:#C8772E; --accent2:#4E79A7;
+    --good:#3C8C5A; --warn:#E0A458; --bad:#C0432F;
+    --c1:#C8772E; --c2:#4E79A7; --c3:#3C8C5A; --c4:#E0A458; --c5:#C0432F; --c6:#6B4226;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.5;}
+  .wrap{max-width:1480px; margin:0 auto; padding:18px 22px 60px;}
+  .topbar{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .logo{border:2px solid var(--text); border-radius:6px; padding:5px 10px; display:flex; flex-direction:column; line-height:1; background:var(--panel);}
+  .logo .t{font-size:8.5px; letter-spacing:.18em; font-weight:600;}
+  .logo .m{font-size:17px; font-weight:800; letter-spacing:.02em;}
+  .ttl h1{font-size:20px; margin:0; font-weight:800; letter-spacing:-.01em;}
+  .ttl .sub{color:var(--muted); font-size:12.5px; margin-top:2px;}
+  .spacer{flex:1;}
+  .ctrls{display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;}
+  .field{display:flex; flex-direction:column; gap:3px;}
+  .field label{font-size:10.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; padding-left:2px;}
+  input[type=date],select{font:inherit; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--text);}
+  .btn{font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--text); padding:7px 12px; border-radius:8px; font-weight:600;}
+  .btn:hover{border-color:var(--accent);}
+  .btn.ghost{background:var(--panel2);}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn.sm{padding:6px 10px; font-size:12.5px;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .chips.lvl1{margin:16px 0 0;}
+  .chips.lvl2{margin:8px 0 0; padding-left:2px;}
+  .chips.lvl2 .lbl{font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-right:2px;}
+  .chip{cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--text); padding:6px 13px; border-radius:999px; font-weight:600; font-size:12.5px;}
+  .chip:hover{border-color:var(--accent);}
+  .chip.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .chip.sub{padding:5px 11px; font-size:12px;}
+  .chip.sub.active{background:var(--accent2); border-color:var(--accent2);}
+  .hidden{display:none;}
+  .rowbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:16px 0 18px;}
+  .seg{display:inline-flex; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; flex-wrap:wrap;}
+  .seg button{font:inherit; cursor:pointer; border:none; background:transparent; color:var(--text); padding:7px 13px; border-radius:8px; font-weight:600; font-size:13px;}
+  .seg button.active{background:var(--accent); color:#fff;}
+  .seg.alt button.active{background:var(--panel); color:var(--accent); box-shadow:0 1px 2px rgba(0,0,0,.06);}
+  .cards{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px;}
+  .card.alert{border-color:#E7C39B; background:#FDF3E7;}
+  .card .k{color:var(--muted); font-size:12.5px; font-weight:600;}
+  .card .v{font-size:32px; font-weight:800; margin-top:6px; letter-spacing:-.02em;}
+  .card .v.sm{font-size:24px;}
+  .card .d{color:var(--muted); font-size:12px; margin-top:3px;}
+  .grid{display:grid; gap:16px;}
+  .g2{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g32{grid-template-columns:1.6fr 1fr;}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px; min-width:0;}
+  .panel h2{font-size:14px; margin:0 0 14px; font-weight:700;}
+  .panel h2 small{color:var(--muted); font-weight:500;}
+  .chart-box{position:relative; height:280px;}
+  .chart-box.tall{height:340px;}
+  .conv{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+  .conv .step{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:6px 11px; font-size:12px; color:var(--muted);}
+  .conv .step b{color:var(--accent);}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);}
+  th{color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums;}
+  tr:last-child td{border-bottom:none;}
+  tr.clickable{cursor:pointer;} tr.clickable:hover td{background:var(--panel2);}
+  .pill{display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px;}
+  .pill.r{background:#FBE4DE; color:#A23B26;} .pill.w{background:#FBEEDF; color:#9A5A1E;}
+  .mt{margin-top:16px;}
+  .badge{font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; border:1px solid var(--line);}
+  .badge.demo{color:var(--accent); background:#FBEEDF; border-color:#EFD8BC;}
+  .badge.live{color:var(--good); background:#E7F2EB; border-color:#CDE6D5;}
+  .jobhead{display:flex; gap:20px; flex-wrap:wrap; align-items:center; margin-bottom:6px;}
+  .jobhead .jt{font-size:18px; font-weight:800;}
+  .jobmeta{color:var(--muted); font-size:12.5px;}
+  .foot{color:var(--muted); font-size:11.5px; margin-top:22px; border-top:1px solid var(--line); padding-top:12px;}
+  @media(max-width:1080px){ .cards{grid-template-columns:repeat(2,1fr);} .g2,.g32,.g3{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="logo"><span class="t">THE FRENCH</span><span class="m">BASTARDS</span></div>
+    <div class="ttl"><h1>Dashboard Recrutement</h1><div class="sub" id="subtitle">Chargement…</div></div>
+    <div class="spacer"></div>
+    <div class="ctrls">
+      <div class="field"><label>Boutique / site</label><select id="boutiqueSel"></select></div>
+      <div class="field"><label>Du</label><input type="date" id="from" /></div>
+      <div class="field"><label>Au</label><input type="date" id="to" /></div>
+      <button class="btn ghost sm" data-range="90">90 j</button>
+      <button class="btn ghost sm" data-range="365">1 an</button>
+      <button class="btn ghost sm" data-range="all">Tout</button>
+      <button class="btn primary" id="apply">Appliquer</button>
+      <span class="badge demo" id="srcBadge" style="align-self:center;">Démo</span>
+    </div>
+  </div>
+
+  <div class="chips lvl1" id="poleChips"></div>
+  <div class="chips lvl2 hidden" id="unitChips"></div>
+
+  <div class="rowbar">
+    <div class="seg" id="channelSeg">
+      <button data-ch="all" class="active">Tous canaux</button>
+      <button data-ch="sourced">Sourcés</button>
+      <button data-ch="inbound">Spontanés</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="seg alt" id="sectionSeg">
+      <button data-sec="overview" class="active">Vue d’ensemble</button>
+      <button data-sec="pipeline">Pipeline</button>
+      <button data-sec="sources">Sources</button>
+      <button data-sec="pilotage">Pilotage</button>
+      <button data-sec="alertes">Alertes</button>
+      <button data-sec="team">Équipe</button>
+      <button data-sec="offre">Offre</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <section data-sec="overview">
+    <div class="grid g32">
+      <div class="panel"><h2>Volume <small>— candidatures & embauches par mois</small></h2><div class="chart-box"><canvas id="volChart"></canvas></div></div>
+      <div class="panel"><h2>Sourcing <small>— sourcés vs spontanés</small></h2><div class="chart-box"><canvas id="srcChart"></canvas></div></div>
+    </div>
+    <div class="grid g2 mt">
+      <div class="panel"><h2>Entonnoir de recrutement</h2><div class="chart-box"><canvas id="funnelChartO"></canvas></div><div class="conv" id="convO"></div></div>
+      <div class="panel"><h2 id="orgTitleO">Candidatures par pôle</h2><div class="chart-box"><canvas id="orgChartO"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-sec="pipeline" class="hidden">
+    <div class="grid g2">
+      <div class="panel"><h2>Entonnoir <small>— atteinte par étape</small></h2><div class="chart-box tall"><canvas id="funnelChartP"></canvas></div><div class="conv" id="convP"></div></div>
+      <div class="panel"><h2>Pipeline actif <small>— par étape</small></h2><div class="chart-box tall"><canvas id="stageChart"></canvas></div></div>
+    </div>
+    <div class="panel mt"><h2>Top postes <small>— clique une ligne pour zoomer</small></h2>
+      <table id="jobTable"><thead><tr><th>Poste</th><th>Pôle</th><th>Boutique</th><th class="num">Cand.</th><th class="num">Emb.</th><th class="num">Taux</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section data-sec="sources" class="hidden">
+    <div class="grid g2">
+      <div class="panel"><h2>Volume par canal</h2><div class="chart-box tall"><canvas id="srcVolChart"></canvas></div></div>
+      <div class="panel"><h2>Taux de conversion → embauche par canal</h2><div class="chart-box tall"><canvas id="srcConvChart"></canvas></div></div>
+    </div>
+    <div class="panel mt"><h2>Efficacité par canal</h2>
+      <table id="srcTable"><thead><tr><th>Canal</th><th class="num">Candidatures</th><th class="num">% du mix</th><th class="num">Embauches</th><th class="num">Taux conv.</th><th class="num">TTH (j)</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section data-sec="pilotage" class="hidden">
+    <div class="grid g32">
+      <div class="panel"><h2>Objectif vs réalisé <small>— embauches, 12 derniers mois</small></h2><div class="chart-box"><canvas id="objChart"></canvas></div></div>
+      <div class="panel"><h2>Atteinte des objectifs</h2><div id="gauge" style="text-align:center; padding-top:8px;"></div></div>
+    </div>
+    <div class="grid g2 mt">
+      <div class="panel"><h2>Candidatures — cette année vs N-1</h2><div class="chart-box"><canvas id="naChart"></canvas></div></div>
+      <div class="panel"><h2>Embauches — cette année vs N-1</h2><div class="chart-box"><canvas id="nbChart"></canvas></div></div>
+    </div>
+    <div class="grid g2 mt">
+      <div class="panel"><h2>Time-to-hire moyen par recruteur <small>— j</small></h2><div class="chart-box"><canvas id="tthChart"></canvas></div></div>
+      <div class="panel"><h2>Time-to-fill par pôle <small>— j</small></h2><div class="chart-box"><canvas id="ttfChart"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-sec="alertes" class="hidden">
+    <div class="cards" id="alertCards"></div>
+    <div class="grid g2">
+      <div class="panel"><h2>Postes à risque <small>— pipeline faible ou ouverts trop longtemps</small></h2>
+        <table id="riskTable"><thead><tr><th>Poste</th><th>Boutique</th><th class="num">Jours ouv.</th><th class="num">Actifs</th><th>Alerte</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="panel"><h2>Goulots <small>— ancienneté moyenne dans l'étape actuelle (j)</small></h2><div class="chart-box"><canvas id="stageAgeChart"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-sec="team" class="hidden">
+    <div class="panel"><h2>Performance par recruteur</h2>
+      <table id="recTable"><thead><tr><th>Recruteur</th><th class="num">Postes</th><th class="num">Cand.</th><th class="num">Emb.</th><th class="num">TTH (j)</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="grid g2 mt">
+      <div class="panel"><h2 id="orgTitleT">Par pôle</h2><div class="chart-box"><canvas id="orgChartT"></canvas></div></div>
+      <div class="panel"><h2>Par boutique / site</h2>
+        <table id="locTable"><thead><tr><th>Boutique</th><th class="num">Cand.</th><th class="num">Emb.</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section data-sec="offre" class="hidden">
+    <div class="panel">
+      <div class="field" style="max-width:520px;"><label>Choisir une offre</label><select id="jobSelect"></select></div>
+      <div class="jobhead mt"><span class="jt" id="jobTitle">—</span><span class="jobmeta" id="jobMeta"></span></div>
+    </div>
+    <div class="cards mt" id="jobCards"></div>
+    <div class="grid g2">
+      <div class="panel"><h2>Entonnoir de l'offre</h2><div class="chart-box"><canvas id="jobFunnel"></canvas></div><div class="conv" id="jobConv"></div></div>
+      <div class="panel"><h2>Candidatures par canal</h2><div class="chart-box"><canvas id="jobSrc"></canvas></div></div>
+    </div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const DS = window.__TT_DATA__;
+const POLES = DS.poles || [...new Set(DS.jobs.map(j=>j.pole).filter(Boolean))];
+const UNITS = DS.units || {};
+const TARGETS = DS.targets || {};
+const STAGE_ORDER=["inbox","screening","in_process","interview","offer","hired"];
+const STAGE_LABELS={inbox:"Réception",screening:"Présélection",in_process:"En cours",interview:"Entretien",offer:"Offre",hired:"Embauché",rejected:"Rejeté"};
+const DAY=86400000, OPEN=new Set(["published","open","internal","scheduled"]);
+const css=(v)=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const nf=new Intl.NumberFormat("fr-FR");
+const fmt=(n)=>n==null?"—":nf.format(n);
+const days=(a,b)=>{if(!a||!b)return null;const d=(new Date(b)-new Date(a))/DAY;return isFinite(d)?d:null;};
+const mean=(a)=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+const median=(a)=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y);const m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;};
+const r1=(x)=>Math.round(x*10)/10;
+const mk=(iso)=>iso?new Date(iso).toISOString().slice(0,7):null;
+function lastMonths(n){const out=[];const d=new Date();for(let i=n-1;i>=0;i--){const t=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()-i,1));out.push(t.toISOString().slice(0,7));}return out;}
+function furthest(a){const i=STAGE_ORDER.indexOf(a.stageType);return i>=0?i:0;}
+const jobById=new Map(DS.jobs.map(j=>[j.id,j]));
+const locById=new Map(DS.locations.map(l=>[l.id,l]));
+const userById=new Map(DS.users.map(u=>[u.id,u]));
+const locName=(j)=>{const id=(j.locationIds||[])[0];return id&&locById.get(id)?locById.get(id).name:"—";};
+
+function filterDataset(opt){
+  const {pole,unit,boutique,channel,from,to}=opt;
+  const jobs=DS.jobs.filter(j=>{
+    if(pole!=="all"&&j.pole!==pole)return false;
+    if(unit!=="all"&&j.unit!==unit)return false;
+    if(boutique&&boutique!=="all"&&!(j.locationIds||[]).includes(boutique))return false;
+    return true;
+  });
+  const js=new Set(jobs.map(j=>j.id));
+  const fromT=from?new Date(from).getTime():-Infinity, toT=to?new Date(to).getTime()+DAY:Infinity;
+  const apps=DS.applications.filter(a=>{
+    if(!js.has(a.jobId))return false;
+    if(channel==="sourced"&&!a.sourced)return false;
+    if(channel==="inbound"&&a.sourced)return false;
+    const t=a.createdAt?new Date(a.createdAt).getTime():null;
+    if(t==null||t<fromT||t>=toT)return false;
+    return true;
+  });
+  return Object.assign({},DS,{jobs,applications:apps});
+}
+
+function aggregate(ds){
+  const stageById=new Map(ds.stages.map(x=>[x.id,x]));
+  const apps=ds.applications, now=Date.now();
+  const isHired=a=>a.stageType==="hired", isRej=a=>!!a.rejectedAt||a.stageType==="rejected", isAct=a=>!isHired(a)&&!isRej(a);
+  const hired=apps.filter(isHired), rej=apps.filter(isRej), act=apps.filter(isAct);
+  const openJobs=ds.jobs.filter(j=>OPEN.has(j.status)).length;
+  const since30=now-30*DAY;
+  const a30=apps.filter(a=>a.createdAt&&new Date(a.createdAt)>=since30).length;
+  const h30=hired.filter(a=>a.changedStageAt&&new Date(a.changedStageAt)>=since30).length;
+  const tth=hired.map(a=>days(a.createdAt,a.changedStageAt)).filter(d=>d!=null&&d>=0);
+  const hbj=new Map();
+  for(const a of hired){if(!a.jobId)continue;const t=a.changedStageAt?+new Date(a.changedStageAt):null;const p=hbj.get(a.jobId);if(t!=null&&(p==null||t<p))hbj.set(a.jobId,t);}
+  const ttf=[]; const ttfByPole={};
+  for(const [jid,ht] of hbj){const j=jobById.get(jid);if(j&&j.createdAt){const d=(ht-+new Date(j.createdAt))/DAY;if(isFinite(d)&&d>=0){ttf.push(d);(ttfByPole[j.pole]=ttfByPole[j.pole]||[]).push(d);}}}
+  const ages=act.map(a=>days(a.createdAt,new Date(now).toISOString())).filter(d=>d!=null&&d>=0);
+  const reached=STAGE_ORDER.map((_,i)=>apps.filter(a=>furthest(a)>=i).length);
+  const exact=STAGE_ORDER.map((_,i)=>apps.filter(a=>furthest(a)===i).length);
+  const pres=STAGE_ORDER.map((c,i)=>i).filter(i=>i===0||STAGE_ORDER[i]==="hired"||exact[i]>0);
+  const funnel=pres.map(i=>({label:STAGE_LABELS[STAGE_ORDER[i]],count:reached[i]}));
+  const conv=[];for(let k=0;k<pres.length-1;k++){const a=pres[k],b=pres[k+1];if(reached[a]>0)conv.push({from:STAGE_LABELS[STAGE_ORDER[a]],to:STAGE_LABELS[STAGE_ORDER[b]],rate:r1(reached[b]/reached[a]*100)});}
+  const offR=reached[STAGE_ORDER.indexOf("offer")]||0;
+  const offAcc=offR>0?r1(hired.length/offR*100):null;
+  const m12=lastMonths(12), m24=lastMonths(24);
+  const amap=new Map(m24.map(m=>[m,0])), hmap=new Map(m24.map(m=>[m,0]));
+  for(const a of apps){const k=mk(a.createdAt);if(amap.has(k))amap.set(k,amap.get(k)+1);}
+  for(const a of hired){const k=mk(a.changedStageAt);if(hmap.has(k))hmap.set(k,hmap.get(k)+1);}
+  const sourced=apps.filter(a=>a.sourced).length;
+  const tj=new Map(),pm=new Map(),um=new Map(),lm=new Map(),rm=new Map(),sd=new Map(),sm=new Map();
+  for(const a of apps){
+    const job=a.jobId?jobById.get(a.jobId):null;
+    if(job){const t=tj.get(job.id)||{jobId:job.id,title:job.title,pole:job.pole,boutique:locName(job),applications:0,hires:0};t.applications++;if(isHired(a))t.hires++;tj.set(job.id,t);}
+    if(job&&job.pole){const t=pm.get(job.pole)||{name:job.pole,applications:0,hires:0};t.applications++;if(isHired(a))t.hires++;pm.set(job.pole,t);}
+    if(job&&job.unit){const t=um.get(job.unit)||{name:job.unit,applications:0,hires:0};t.applications++;if(isHired(a))t.hires++;um.set(job.unit,t);}
+    if(job){const n=locName(job);const t=lm.get(n)||{name:n,applications:0,hires:0};t.applications++;if(isHired(a))t.hires++;lm.set(n,t);}
+    const rid=a.recruiterId||(job&&job.recruiterId);
+    if(rid){const t=rm.get(rid)||{name:(userById.get(rid)||{}).name||"—",openJobs:0,applications:0,hires:0,_t:[]};t.applications++;if(isHired(a)){t.hires++;const d=days(a.createdAt,a.changedStageAt);if(d!=null&&d>=0)t._t.push(d);}rm.set(rid,t);}
+    const sc=a.source||"Autre";{const t=sm.get(sc)||{name:sc,applications:0,hires:0,_t:[]};t.applications++;if(isHired(a)){t.hires++;const d=days(a.createdAt,a.changedStageAt);if(d!=null&&d>=0)t._t.push(d);}sm.set(sc,t);}
+    if(isAct(a)&&a.stageId){const n=(stageById.get(a.stageId)||{}).name||STAGE_LABELS[a.stageType]||"—";sd.set(n,(sd.get(n)||0)+1);}
+  }
+  for(const j of ds.jobs){if(j.recruiterId&&OPEN.has(j.status)){const t=rm.get(j.recruiterId);if(t)t.openJobs++;else rm.set(j.recruiterId,{name:(userById.get(j.recruiterId)||{}).name||"—",openJobs:1,applications:0,hires:0,_t:[]});}}
+  const total=apps.length;
+  return {
+    summary:{openJobs,total,a30,hires:hired.length,h30,active:act.length,
+      tthAvg:r1(mean(tth)),tthMed:r1(median(tth)),ttfAvg:r1(mean(ttf)),
+      rejRate:total?r1(rej.length/total*100):0,ageAvg:r1(mean(ages)),offAcc,sourcedRate:total?r1(sourced/total*100):0},
+    funnel,conv,
+    aot24:m24.map(m=>({period:m,count:amap.get(m)})),
+    hot24:m24.map(m=>({period:m,count:hmap.get(m)})),
+    sourcing:{sourced,inbound:total-sourced},
+    topJobs:[...tj.values()].sort((a,b)=>b.applications-a.applications),
+    byPole:[...pm.values()].sort((a,b)=>b.applications-a.applications),
+    byUnit:[...um.values()].sort((a,b)=>a.name<b.name?-1:1),
+    ttfByPole:Object.entries(ttfByPole).map(([name,arr])=>({name,ttf:r1(mean(arr))})).sort((a,b)=>b.ttf-a.ttf),
+    byLoc:[...lm.values()].sort((a,b)=>b.applications-a.applications),
+    byRec:[...rm.values()].map(r=>({name:r.name,openJobs:r.openJobs,applications:r.applications,hires:r.hires,tth:r._t.length?r1(mean(r._t)):null})).sort((a,b)=>b.hires-a.hires||b.applications-a.applications),
+    bySource:[...sm.values()].map(s=>({name:s.name,applications:s.applications,hires:s.hires,convRate:s.applications?r1(s.hires/s.applications*100):0,tth:s._t.length?r1(mean(s._t)):null,share:total?r1(s.applications/total*100):0})).sort((a,b)=>b.applications-a.applications),
+    stageDist:[...sd.entries()].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,12),
+  };
+}
+
+function computeAlerts(ds){
+  const now=Date.now();
+  const isHired=a=>a.stageType==="hired", isRej=a=>!!a.rejectedAt||a.stageType==="rejected", isAct=a=>!isHired(a)&&!isRej(a);
+  const appsByJob=new Map();
+  for(const a of ds.applications){if(!appsByJob.has(a.jobId))appsByJob.set(a.jobId,[]);appsByJob.get(a.jobId).push(a);}
+  const risky=[];
+  for(const j of ds.jobs){
+    if(!OPEN.has(j.status))continue;
+    const as=appsByJob.get(j.id)||[];
+    const active=as.filter(isAct).length, hires=as.filter(isHired).length;
+    const daysOpen=Math.round(days(j.createdAt,new Date(now).toISOString())||0);
+    const reasons=[];
+    if(daysOpen>60&&hires===0)reasons.push("Ouvert >60 j, 0 embauche");
+    if(active<2&&daysOpen>21)reasons.push("Pipeline faible (<2 actifs)");
+    if(reasons.length)risky.push({title:j.title,boutique:locName(j),daysOpen,active,reasons});
+  }
+  risky.sort((a,b)=>b.daysOpen-a.daysOpen);
+  // candidatures qui stagnent (>21 j sans changement d'étape)
+  const active=ds.applications.filter(isAct);
+  const stalled=active.filter(a=>{const d=days(a.changedStageAt,new Date(now).toISOString());return d!=null&&d>21;});
+  // ancienneté moyenne par étape (goulots)
+  const byCat={};
+  for(const a of active){const d=days(a.changedStageAt,new Date(now).toISOString());if(d==null)continue;(byCat[a.stageType]=byCat[a.stageType]||[]).push(d);}
+  const stageAge=STAGE_ORDER.filter(c=>byCat[c]&&byCat[c].length).map(c=>({label:STAGE_LABELS[c],avg:r1(mean(byCat[c]))}));
+  return {risky,stalledCount:stalled.length,activeCount:active.length,stageAge};
+}
+
+function jobDetail(jobId){
+  const job=jobById.get(jobId); if(!job)return null;
+  const apps=DS.applications.filter(a=>a.jobId===jobId);
+  const k=aggregate(Object.assign({},DS,{jobs:[job],applications:apps}));
+  const daysOpen=Math.round(days(job.createdAt,new Date().toISOString())||0);
+  return {job,daysOpen,k};
+}
+
+let charts={};
+function chart(id,cfg){if(charts[id])charts[id].destroy();const el=document.getElementById(id);if(el)charts[id]=new Chart(el,cfg);}
+const C={c1:css("--c1"),c2:css("--c2"),c3:css("--c3"),c4:css("--c4"),c5:css("--c5"),c6:css("--c6"),panel2:css("--panel2"),muted:css("--muted"),line:css("--line")};
+const PAL=[C.c1,C.c2,C.c3,C.c4,C.c5,C.c6,"#9C6B3F"];
+const grid="rgba(138,123,107,0.18)";
+const base=(extra)=>Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:C.muted,boxWidth:12,font:{size:11}}}},scales:{x:{ticks:{color:C.muted,font:{size:11}},grid:{color:grid}},y:{beginAtZero:true,ticks:{color:C.muted,font:{size:11}},grid:{color:grid}}}},extra||{});
+const dj=(x)=>x==null||x===0?"—":fmt(x)+" j";
+const pc=(x)=>x==null?"—":fmt(x)+" %";
+
+let state={pole:"all",unit:"all",boutique:"all",channel:"all",from:null,to:null,section:"overview",selectedJobId:null};
+
+function orgBreakdown(k){
+  if(state.unit==="all"&&(UNITS[state.pole]||[]).length&&k.byUnit.length)return {title:`Candidatures par unité (${state.pole})`,rows:k.byUnit};
+  return {title:"Candidatures par pôle",rows:k.byPole};
+}
+function funnelCfg(k){return {type:"bar",data:{labels:k.funnel.map(f=>f.label),datasets:[{data:k.funnel.map(f=>f.count),backgroundColor:C.c1,borderRadius:6,barThickness:24}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})};}
+function convHTML(k){return k.conv.map(c=>`<div class="step">${c.from} → ${c.to} : <b>${fmt(c.rate)} %</b></div>`).join("");}
+
+function render(){
+  const dsDate=filterDataset(state);
+  const k=aggregate(dsDate);
+  const s=k.summary;
+  document.getElementById("cards").innerHTML=[
+    ["Postes ouverts",fmt(s.openJobs),""],["Candidatures",fmt(s.total),fmt(s.a30)+" sur 30 j"],
+    ["Embauches",fmt(s.hires),fmt(s.h30)+" sur 30 j"],["Pipeline actif",fmt(s.active),"en cours"],
+    ["Time-to-hire moyen",dj(s.tthAvg),"médiane "+dj(s.tthMed)],["Time-to-fill moyen",dj(s.ttfAvg),"poste → 1re embauche"],
+    ["Taux de rejet",pc(s.rejRate),""],["Acceptation d’offre",pc(s.offAcc),"sourcing "+pc(s.sourcedRate)],
+  ].map(([a,v,d])=>`<div class="card"><div class="k">${a}</div><div class="v">${v}</div>${d?`<div class="d">${d}</div>`:""}</div>`).join("");
+
+  const sec=state.section;
+  if(sec==="overview"){
+    chart("volChart",{data:{labels:k.aot24.slice(12).map(m=>m.period.slice(5)),datasets:[
+      {type:"bar",label:"Candidatures",data:k.aot24.slice(12).map(m=>m.count),backgroundColor:"rgba(200,119,46,0.55)",borderRadius:4},
+      {type:"line",label:"Embauches",data:k.hot24.slice(12).map(m=>m.count),borderColor:C.c3,backgroundColor:C.c3,tension:.3,pointRadius:3,borderWidth:2}]},options:base()});
+    chart("srcChart",{type:"doughnut",data:{labels:["Sourcés","Spontanés"],datasets:[{data:[k.sourcing.sourced,k.sourcing.inbound],backgroundColor:[C.c1,C.panel2],borderColor:C.line,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom",labels:{color:C.muted,padding:14,font:{size:12}}}}}});
+    chart("funnelChartO",funnelCfg(k));document.getElementById("convO").innerHTML=convHTML(k);
+    const org=orgBreakdown(k);document.getElementById("orgTitleO").textContent=org.title;
+    chart("orgChartO",{type:"bar",data:{labels:org.rows.map(d=>d.name),datasets:[{label:"Candidatures",data:org.rows.map(d=>d.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:org.rows.map(d=>d.hires),backgroundColor:C.c3,borderRadius:4}]},options:base()});
+  }
+  if(sec==="pipeline"){
+    chart("funnelChartP",funnelCfg(k));document.getElementById("convP").innerHTML=convHTML(k);
+    chart("stageChart",{type:"bar",data:{labels:k.stageDist.map(s=>s.name),datasets:[{data:k.stageDist.map(s=>s.count),backgroundColor:C.c2,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
+    document.querySelector("#jobTable tbody").innerHTML=k.topJobs.slice(0,15).map(j=>`<tr class="clickable" data-job="${j.jobId}"><td>${j.title}</td><td>${j.pole||"—"}</td><td>${j.boutique||"—"}</td><td class="num">${fmt(j.applications)}</td><td class="num">${fmt(j.hires)}</td><td class="num">${j.applications?fmt(r1(j.hires/j.applications*100))+" %":"—"}</td></tr>`).join("");
+  }
+  if(sec==="sources"){
+    const bs=k.bySource;
+    chart("srcVolChart",{type:"bar",data:{labels:bs.map(s=>s.name),datasets:[{label:"Candidatures",data:bs.map(s=>s.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:bs.map(s=>s.hires),backgroundColor:C.c3,borderRadius:4}]},options:base({indexAxis:"y"})});
+    chart("srcConvChart",{type:"bar",data:{labels:bs.map(s=>s.name),datasets:[{data:bs.map(s=>s.convRate),backgroundColor:bs.map((_,i)=>PAL[i%PAL.length]),borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
+    document.querySelector("#srcTable tbody").innerHTML=bs.map(s=>`<tr><td>${s.name}</td><td class="num">${fmt(s.applications)}</td><td class="num">${fmt(s.share)} %</td><td class="num">${fmt(s.hires)}</td><td class="num">${fmt(s.convRate)} %</td><td class="num">${s.tth==null?"—":fmt(s.tth)}</td></tr>`).join("");
+  }
+  if(sec==="pilotage"){
+    const dsOrg=filterDataset(Object.assign({},state,{from:null,to:null}));
+    const ko=aggregate(dsOrg);
+    const since12=Date.now()-365*DAY;
+    const realByPole={};
+    dsOrg.applications.forEach(a=>{if(a.stageType==="hired"&&a.changedStageAt&&new Date(a.changedStageAt)>=since12){const p=(jobById.get(a.jobId)||{}).pole;if(p)realByPole[p]=(realByPole[p]||0)+1;}});
+    const polesShown=(state.pole==="all"?POLES:[state.pole]);
+    const obj=polesShown.map(p=>({name:p,real:realByPole[p]||0,target:(TARGETS[p]||0)*12}));
+    chart("objChart",{type:"bar",data:{labels:obj.map(o=>o.name),datasets:[{label:"Objectif",data:obj.map(o=>o.target),backgroundColor:C.panel2,borderColor:C.line,borderWidth:1,borderRadius:4},{label:"Réalisé",data:obj.map(o=>o.real),backgroundColor:C.c1,borderRadius:4}]},options:base()});
+    const totReal=obj.reduce((s,o)=>s+o.real,0), totTarget=obj.reduce((s,o)=>s+o.target,0);
+    const att=totTarget?Math.round(totReal/totTarget*100):0;
+    const col=att>=100?C.c3:att>=75?C.c4:C.c5;
+    document.getElementById("gauge").innerHTML=`<div style="font-size:54px;font-weight:800;color:${col};letter-spacing:-.02em;">${att} %</div><div style="color:var(--muted);font-size:13px;">${fmt(totReal)} embauches / objectif ${fmt(totTarget)}<br>sur 12 mois glissants</div>`;
+    const cur=ko.aot24.slice(12).map(m=>m.count), prev=ko.aot24.slice(0,12).map(m=>m.count);
+    const labels=ko.aot24.slice(12).map(m=>m.period.slice(5));
+    chart("naChart",{data:{labels,datasets:[{type:"line",label:"Cette année",data:cur,borderColor:C.c1,backgroundColor:C.c1,tension:.3,pointRadius:2,borderWidth:2},{type:"line",label:"N-1",data:prev,borderColor:C.muted,borderDash:[6,4],tension:.3,pointRadius:0,borderWidth:2}]},options:base()});
+    const curH=ko.hot24.slice(12).map(m=>m.count), prevH=ko.hot24.slice(0,12).map(m=>m.count);
+    chart("nbChart",{data:{labels,datasets:[{type:"bar",label:"Cette année",data:curH,backgroundColor:C.c3,borderRadius:3},{type:"line",label:"N-1",data:prevH,borderColor:C.muted,borderDash:[6,4],tension:.3,pointRadius:0,borderWidth:2}]},options:base()});
+    const recs=k.byRec.filter(r=>r.tth!=null).slice(0,10);
+    chart("tthChart",{type:"bar",data:{labels:recs.map(r=>r.name),datasets:[{data:recs.map(r=>r.tth),backgroundColor:C.c4,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
+    chart("ttfChart",{type:"bar",data:{labels:k.ttfByPole.map(p=>p.name),datasets:[{data:k.ttfByPole.map(p=>p.ttf),backgroundColor:C.c2,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
+  }
+  if(sec==="alertes"){
+    const dsOrg=filterDataset(Object.assign({},state,{from:null,to:null}));
+    const al=computeAlerts(dsOrg);
+    document.getElementById("alertCards").innerHTML=[
+      ["Postes à risque",fmt(al.risky.length),"sur "+fmt(dsOrg.jobs.filter(j=>OPEN.has(j.status)).length)+" postes ouverts"],
+      ["Candidatures qui stagnent",fmt(al.stalledCount),">21 j sans mouvement, sur "+fmt(al.activeCount)+" actives"],
+      ["Étape la plus lente",al.stageAge.length?al.stageAge.slice().sort((a,b)=>b.avg-a.avg)[0].label:"—",al.stageAge.length?dj(al.stageAge.slice().sort((a,b)=>b.avg-a.avg)[0].avg)+" en moyenne":""],
+    ].map(([a,v,d])=>`<div class="card alert"><div class="k">${a}</div><div class="v sm">${v}</div>${d?`<div class="d">${d}</div>`:""}</div>`).join("");
+    document.querySelector("#riskTable tbody").innerHTML=al.risky.slice(0,15).map(r=>`<tr><td>${r.title}</td><td>${r.boutique}</td><td class="num">${fmt(r.daysOpen)}</td><td class="num">${fmt(r.active)}</td><td>${r.reasons.map(x=>`<span class="pill ${x.includes(">60")?"r":"w"}">${x}</span>`).join(" ")}</td></tr>`).join("")||`<tr><td colspan="5" style="color:var(--muted)">Aucun poste à risque 🎉</td></tr>`;
+    chart("stageAgeChart",{type:"bar",data:{labels:al.stageAge.map(s=>s.label),datasets:[{data:al.stageAge.map(s=>s.avg),backgroundColor:C.c5,borderRadius:4}]},options:base({indexAxis:"y",plugins:{legend:{display:false}}})});
+  }
+  if(sec==="team"){
+    document.querySelector("#recTable tbody").innerHTML=k.byRec.map(r=>`<tr><td>${r.name}</td><td class="num">${fmt(r.openJobs)}</td><td class="num">${fmt(r.applications)}</td><td class="num">${fmt(r.hires)}</td><td class="num">${r.tth==null?"—":fmt(r.tth)}</td></tr>`).join("");
+    const org=orgBreakdown(k);document.getElementById("orgTitleT").textContent=org.title;
+    chart("orgChartT",{type:"bar",data:{labels:org.rows.map(d=>d.name),datasets:[{label:"Candidatures",data:org.rows.map(d=>d.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:org.rows.map(d=>d.hires),backgroundColor:C.c3,borderRadius:4}]},options:base()});
+    document.querySelector("#locTable tbody").innerHTML=k.byLoc.map(l=>`<tr><td>${l.name}</td><td class="num">${fmt(l.applications)}</td><td class="num">${fmt(l.hires)}</td></tr>`).join("");
+  }
+  if(sec==="offre")renderJob();
+
+  const live=DS.source==="live";
+  const badge=document.getElementById("srcBadge");badge.textContent=live?"Données live":"Démo";badge.className="badge "+(live?"live":"demo");
+  const boutiqueLabel=state.boutique!=="all"&&locById.get(state.boutique)?" · "+locById.get(state.boutique).name:"";
+  const scope=(state.pole==="all"?"tous pôles":(state.unit==="all"?state.pole:state.pole+" · "+state.unit))+boutiqueLabel;
+  document.getElementById("subtitle").textContent=`Teamtailor · ${scope} · ${fmt(s.openJobs)} postes ouverts · ${fmt(s.total)} candidatures`;
+  document.getElementById("foot").textContent=(live?"":"Mode démo — données d’exemple. Régénérez data.js avec « node build-data.mjs » pour vos vraies données. ")+"Généré le "+new Date(DS.generatedAt).toLocaleString("fr-FR");
+}
+
+function renderJob(){
+  if(!state.selectedJobId)state.selectedJobId=DS.jobs[0].id;
+  const d=jobDetail(state.selectedJobId); if(!d)return;
+  const {job,daysOpen,k}=d, s=k.summary;
+  document.getElementById("jobTitle").textContent=job.title;
+  document.getElementById("jobMeta").innerHTML=`${job.pole}${job.unit?" · "+job.unit:""} · ${locName(job)} · recruteur : ${(userById.get(job.recruiterId)||{}).name||"—"} · statut : ${job.status} · ouvert depuis ${fmt(daysOpen)} j`;
+  document.getElementById("jobCards").innerHTML=[
+    ["Candidatures",fmt(s.total),""],["Pipeline actif",fmt(s.active),"en cours"],
+    ["Embauches",fmt(s.hires),""],["Time-to-hire",dj(s.tthAvg),"médiane "+dj(s.tthMed)],
+  ].map(([a,v,dd])=>`<div class="card"><div class="k">${a}</div><div class="v sm">${v}</div>${dd?`<div class="d">${dd}</div>`:""}</div>`).join("");
+  chart("jobFunnel",funnelCfg(k));document.getElementById("jobConv").innerHTML=convHTML(k);
+  const bs=k.bySource;
+  chart("jobSrc",{type:"bar",data:{labels:bs.map(x=>x.name),datasets:[{label:"Candidatures",data:bs.map(x=>x.applications),backgroundColor:C.c1,borderRadius:4},{label:"Embauches",data:bs.map(x=>x.hires),backgroundColor:C.c3,borderRadius:4}]},options:base({indexAxis:"y"})});
+}
+
+function buildPoleChips(){
+  const el=document.getElementById("poleChips");
+  el.innerHTML=[{id:"all",name:"Tous"}].concat(POLES.map(p=>({id:p,name:p}))).map(d=>`<button class="chip${d.id==="all"?" active":""}" data-pole="${d.id}">${d.name}</button>`).join("");
+  el.addEventListener("click",e=>{const b=e.target.closest("[data-pole]");if(!b)return;state.pole=b.dataset.pole;state.unit="all";[...el.children].forEach(c=>c.classList.toggle("active",c===b));buildUnitChips();render();});
+}
+function buildUnitChips(){
+  const el=document.getElementById("unitChips");
+  const units=UNITS[state.pole]||[];
+  if(!units.length){el.classList.add("hidden");el.innerHTML="";return;}
+  el.classList.remove("hidden");
+  el.innerHTML=`<span class="lbl">${state.pole} :</span>`+[{id:"all",name:"Toutes"}].concat(units.map(u=>({id:u,name:u}))).map(u=>`<button class="chip sub${u.id==="all"?" active":""}" data-unit="${u.id}">${u.name}</button>`).join("");
+  el.addEventListener("click",e=>{const b=e.target.closest("[data-unit]");if(!b)return;state.unit=b.dataset.unit;[...el.querySelectorAll("[data-unit]")].forEach(c=>c.classList.toggle("active",c===b));render();});
+}
+function buildBoutiqueSel(){
+  const el=document.getElementById("boutiqueSel");
+  el.innerHTML=`<option value="all">Toutes</option>`+DS.locations.map(l=>`<option value="${l.id}">${l.name}</option>`).join("");
+  el.addEventListener("change",()=>{state.boutique=el.value;render();});
+}
+function buildJobSelect(){
+  const el=document.getElementById("jobSelect");
+  el.innerHTML=DS.jobs.map(j=>`<option value="${j.id}">${j.title} — ${j.pole}${j.unit?" "+j.unit:""} · ${locName(j)}</option>`).join("");
+  el.addEventListener("change",()=>{state.selectedJobId=el.value;renderJob();});
+}
+function setupSegs(){
+  document.getElementById("channelSeg").addEventListener("click",e=>{const b=e.target.closest("[data-ch]");if(!b)return;state.channel=b.dataset.ch;[...e.currentTarget.children].forEach(c=>c.classList.toggle("active",c===b));render();});
+  document.getElementById("sectionSeg").addEventListener("click",e=>{const b=e.target.closest("[data-sec]");if(!b)return;state.section=b.dataset.sec;[...e.currentTarget.children].forEach(c=>c.classList.toggle("active",c===b));document.querySelectorAll("section[data-sec]").forEach(x=>x.classList.toggle("hidden",x.dataset.sec!==state.section));render();});
+  document.addEventListener("click",e=>{const row=e.target.closest("tr.clickable[data-job]");if(!row)return;state.selectedJobId=row.dataset.job;state.section="offre";document.querySelectorAll("#sectionSeg button").forEach(x=>x.classList.toggle("active",x.dataset.sec==="offre"));document.querySelectorAll("section[data-sec]").forEach(x=>x.classList.toggle("hidden",x.dataset.sec!=="offre"));const js=document.getElementById("jobSelect");if(js)js.value=state.selectedJobId;render();});
+}
+function setupDates(){
+  const fromEl=document.getElementById("from"),toEl=document.getElementById("to");
+  document.querySelectorAll("[data-range]").forEach(b=>b.addEventListener("click",()=>{
+    const r=b.dataset.range;
+    if(r==="all"){fromEl.value="";toEl.value="";state.from=null;state.to=null;}
+    else{const to=new Date();const from=new Date(Date.now()-(+r)*DAY);toEl.value=to.toISOString().slice(0,10);fromEl.value=from.toISOString().slice(0,10);state.from=fromEl.value;state.to=toEl.value;}
+    render();}));
+  document.getElementById("apply").addEventListener("click",()=>{state.from=fromEl.value||null;state.to=toEl.value||null;render();});
+}
+
+buildPoleChips();buildUnitChips();buildBoutiqueSel();buildJobSelect();setupSegs();setupDates();render();
+</script>
+</body>
+</html>

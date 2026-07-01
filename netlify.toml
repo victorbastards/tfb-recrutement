@@ -1,0 +1,5 @@
+[build]
+  command = "cp build-data.txt build-data.mjs && node build-data.mjs"
+  publish = "."
+[build.environment]
+  NODE_VERSION = "20"

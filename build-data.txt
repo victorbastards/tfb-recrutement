@@ -1,0 +1,377 @@
+// Build autonome (aucun .js). Netlify: cp build-data.txt build-data.mjs && node build-data.mjs
+// lib/teamtailor.js
+// Client de l'API publique Teamtailor (JSON:API).
+// Gère l'authentification, le header X-Api-Version, la pagination,
+// le rate limit (50 req / 10 s) et la normalisation des ressources
+// en un "dataset" plat consommé par lib/aggregate.js.
+
+const STACK_HOSTS = {
+  eu: "https://api.teamtailor.com",
+  na: "https://api.na.teamtailor.com",
+};
+
+function cfg() {
+  const stack = (process.env.TEAMTAILOR_STACK || "eu").toLowerCase();
+  return {
+    apiKey: process.env.TEAMTAILOR_API_KEY || "",
+    host: STACK_HOSTS[stack] || STACK_HOSTS.eu,
+    version: process.env.TEAMTAILOR_API_VERSION || "20240904",
+  };
+}
+
+function hasApiKey() {
+  return Boolean((process.env.TEAMTAILOR_API_KEY || "").trim());
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Requête unique avec gestion du 429 (retry en respectant X-Rate-Limit-Reset).
+async function request(url, { apiKey, version }, attempt = 0) {
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Token token=${apiKey}`,
+      "X-Api-Version": version,
+      "Content-Type": "application/vnd.api+json",
+    },
+  });
+
+  if (res.status === 429) {
+    const reset = Number(res.headers.get("X-Rate-Limit-Reset")) || 2;
+    if (attempt < 6) {
+      await sleep((reset + 0.5) * 1000);
+      return request(url, { apiKey, version }, attempt + 1);
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Teamtailor ${res.status} sur ${url} :: ${body.slice(0, 300)}`);
+  }
+  return res.json();
+}
+
+// Récupère TOUTES les pages d'une ressource en suivant links.next.
+// `path` ex: "/v1/jobs", `params` ex: { include: "department,locations", "filter[status]": "published" }
+async function fetchAll(path, params = {}, max = 5000) {
+  const c = cfg();
+  const qs = new URLSearchParams({ "page[size]": "30", ...params });
+  let url = `${c.host}${path}?${qs.toString()}`;
+
+  const data = [];
+  const included = [];
+  let guard = 0;
+
+  while (url && data.length < max && guard < 400) {
+    guard++;
+    const json = await request(url, c);
+    if (Array.isArray(json.data)) data.push(...json.data);
+    if (Array.isArray(json.included)) included.push(...json.included);
+    url = json.links && json.links.next ? json.links.next : null;
+    // Petite pause de courtoisie pour rester sous 50 req / 10 s.
+    if (url) await sleep(120);
+  }
+  return { data, included };
+}
+
+// --- Helpers JSON:API ---
+const rel = (resource, name) => {
+  const r = resource.relationships && resource.relationships[name];
+  if (!r || !r.data) return null;
+  return Array.isArray(r.data) ? r.data.map((d) => String(d.id)) : String(r.data.id);
+};
+const attr = (resource, ...names) => {
+  const a = resource.attributes || {};
+  for (const n of names) if (a[n] !== undefined && a[n] !== null) return a[n];
+  return undefined;
+};
+
+// Canonicalise une catégorie de stage-type Teamtailor.
+function canonCategory(raw) {
+  if (!raw) return "in_process";
+  const s = String(raw).toLowerCase().replace(/[\s-]+/g, "_");
+  if (["inbox", "applied", "new", "sourced"].includes(s)) return "inbox";
+  if (s.includes("screen")) return "screening";
+  if (s.includes("interview")) return "interview";
+  if (s.includes("offer")) return "offer";
+  if (s === "hired") return "hired";
+  if (s === "rejected") return "rejected";
+  if (s.includes("process")) return "in_process";
+  return s;
+}
+
+// Construit le dataset normalisé à partir de l'API.
+async function fetchDataset() {
+  // 1. Référentiels
+  const [stageTypesRaw, stagesRaw, usersRaw, deptsRaw, locsRaw] = await Promise.all([
+    fetchAll("/v1/stage-types").catch(() => ({ data: [] })),
+    fetchAll("/v1/stages", { include: "stage-type" }),
+    fetchAll("/v1/users"),
+    fetchAll("/v1/departments"),
+    fetchAll("/v1/locations"),
+  ]);
+
+  const stageTypes = stageTypesRaw.data.map((t) => ({
+    id: String(t.id),
+    name: attr(t, "name") || "",
+    category: canonCategory(attr(t, "category", "name")),
+  }));
+  const stageTypeById = new Map(stageTypes.map((t) => [t.id, t]));
+
+  const stages = stagesRaw.data.map((s) => {
+    const stageTypeId = rel(s, "stage-type");
+    return {
+      id: String(s.id),
+      name: attr(s, "name") || "",
+      rowOrder: attr(s, "row-order") ?? 0,
+      jobId: rel(s, "job"),
+      stageTypeId,
+      // catégorie : via la relation stage-type, sinon via legacy-stage-type-name
+      category:
+        (stageTypeId && stageTypeById.get(stageTypeId)?.category) ||
+        canonCategory(attr(s, "legacy-stage-type-name", "name")),
+    };
+  });
+  const stageById = new Map(stages.map((s) => [s.id, s]));
+
+  const users = usersRaw.data.map((u) => ({
+    id: String(u.id),
+    name: attr(u, "name") || [attr(u, "first-name"), attr(u, "last-name")].filter(Boolean).join(" ") || "—",
+  }));
+  const departments = deptsRaw.data.map((d) => ({ id: String(d.id), name: attr(d, "name") || "—" }));
+  const locations = locsRaw.data.map((l) => ({
+    id: String(l.id),
+    name: attr(l, "name", "city") || "—",
+  }));
+
+  // 2. Jobs (publiés + internes + archivés selon le scope de la clé)
+  const jobsRaw = await fetchAll("/v1/jobs", { include: "department,locations,user" });
+  const deptNameById = new Map(departments.map((d) => [d.id, d.name]));
+  const jobs = jobsRaw.data.map((j) => {
+    const departmentId = rel(j, "department");
+    return {
+      id: String(j.id),
+      title: attr(j, "title") || "—",
+      status: attr(j, "status") || "unknown",
+      createdAt: attr(j, "created-at"),
+      recruiterId: rel(j, "user"),
+      departmentId,
+      // MAPPING ORGANISATION (à ajuster selon ta structure Teamtailor) :
+      // par défaut le "pôle" = le département Teamtailor. La sous-unité (B1/B2/P1…)
+      // n'existe pas nativement : à mapper sur une "team", une division ou un champ
+      // personnalisé une fois la structure connue (cf. inspect-teamtailor.mjs).
+      pole: (departmentId && deptNameById.get(departmentId)) || "—",
+      unit: null,
+      locationIds: rel(j, "locations") || [],
+    };
+  });
+
+  // 3. Candidatures (le plus gros volume) — on inclut le candidat.
+  const appsRaw = await fetchAll("/v1/job-applications", { include: "candidate" });
+  const applications = appsRaw.data.map((a) => {
+    const stageId = rel(a, "stage");
+    const stage = stageId ? stageById.get(stageId) : null;
+    return {
+      id: String(a.id),
+      createdAt: attr(a, "created-at"),
+      changedStageAt: attr(a, "changed-stage-at"),
+      rejectedAt: attr(a, "rejected-at"),
+      stageId,
+      // catégorie de l'étape courante
+      stageType: canonCategory(
+        attr(a, "stage-type") || (stage && stage.category)
+      ),
+      // candidat sourcé vs candidature spontanée (selon disponibilité)
+      sourced: Boolean(attr(a, "sourced")),
+      // Canal de sourcing : selon le compte, peut venir d'un attribut de la candidature,
+      // du candidat, ou d'une activité. À confirmer via inspect-teamtailor.mjs.
+      source: attr(a, "source", "source-name", "channel") || null,
+      jobId: rel(a, "job"),
+      candidateId: rel(a, "candidate"),
+      recruiterId: rel(a, "user"),
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    source: "live",
+    jobs,
+    applications,
+    stages,
+    stageTypes,
+    users,
+    departments,
+    locations,
+    // Dimensions enrichies pour le dashboard local.
+    poles: [...new Set(jobs.map((j) => j.pole).filter(Boolean))],
+    units: {}, // { "Vente": ["B1","B2"], ... } une fois le mapping des unités défini
+    targets: {}, // objectifs mensuels d'embauche par pôle, ex: { Vente: 9 }
+    sources: [...new Set(applications.map((a) => a.source).filter(Boolean))],
+  };
+}
+
+// lib/mock.js
+// Génère un dataset normalisé réaliste (même forme que teamtailor.js)
+// pour faire tourner le dashboard sans clé API. Déterministe (seed fixe).
+// Organisation The French Bastards : pôles Vente / Production / Laboratoire / Siège,
+// sous-unités (boutiques B1-B3, sites P1-P3), boutiques réelles, canaux de sourcing,
+// objectifs d'embauche et 24 mois d'historique (pour la comparaison N-1).
+
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+const wpick = (rng, pairs) => {
+  const total = pairs.reduce((s, p) => s + p[1], 0);
+  let r = rng() * total;
+  for (const [v, w] of pairs) { if ((r -= w) <= 0) return v; }
+  return pairs[0][0];
+};
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+
+function mockDataset() {
+  const rng = makeRng(20240904);
+
+  const departments = [
+    { id: "d1", name: "Vente" }, { id: "d2", name: "Production" },
+    { id: "d3", name: "Laboratoire" }, { id: "d4", name: "Siège" },
+  ];
+  const UNITS = { Vente: ["B1", "B2", "B3"], Production: ["P1", "P2", "P3"], Laboratoire: [], Siège: [] };
+
+  // Boutiques / sites réels TFB (= localisations).
+  const VENTE_LOCS = ["Oberkampf","Saint-Denis","St Ferdinand","Pigalle","Sèvres","Temple","Lévis","Neuilly","Rambuteau","Levallois","Bac","Pompe","Lille Basse","Lille Neuve","Bordeaux St-Georges","Bordeaux Grands Hommes","Bordeaux Dijeaux"];
+  const PROD_LOCS = ["Atelier Paris","Atelier Lille","Atelier Bordeaux"];
+  const OTHER_LOCS = ["Laboratoire R&D","Siège"];
+  const allLocNames = [...VENTE_LOCS, ...PROD_LOCS, ...OTHER_LOCS];
+  const locations = allLocNames.map((name, i) => ({ id: `l${i + 1}`, name }));
+  const locIdByName = new Map(locations.map((l) => [l.name, l.id]));
+
+  const users = ["Camille Roux","Thomas Lefèvre","Sarah Benali","Lucas Martin","Inès Moreau"]
+    .map((name, i) => ({ id: `u${i + 1}`, name }));
+
+  const stageTypes = [
+    { id: "st1", name: "Inbox", category: "inbox" }, { id: "st2", name: "Screening", category: "screening" },
+    { id: "st3", name: "Interview", category: "interview" }, { id: "st4", name: "Offer", category: "offer" },
+    { id: "st5", name: "Hired", category: "hired" }, { id: "st6", name: "Rejected", category: "rejected" },
+  ];
+  const stages = [
+    { id: "s1", name: "Réception", category: "inbox", stageTypeId: "st1", rowOrder: 1, jobId: null },
+    { id: "s2", name: "Présélection tél.", category: "screening", stageTypeId: "st2", rowOrder: 2, jobId: null },
+    { id: "s3", name: "Entretien RH", category: "interview", stageTypeId: "st3", rowOrder: 3, jobId: null },
+    { id: "s4", name: "Essai / entretien manager", category: "interview", stageTypeId: "st3", rowOrder: 4, jobId: null },
+    { id: "s5", name: "Proposition", category: "offer", stageTypeId: "st4", rowOrder: 5, jobId: null },
+    { id: "s6", name: "Embauché", category: "hired", stageTypeId: "st5", rowOrder: 6, jobId: null },
+  ];
+  const stageByCat = { inbox: ["s1"], screening: ["s2"], interview: ["s3", "s4"], offer: ["s5"], hired: ["s6"] };
+
+  const TITLES = {
+    Vente: ["Vendeur·se","Équipier·ère polyvalent·e","Responsable de boutique","Barista","Adjoint·e de boutique","Chef·fe de rang"],
+    Production: ["Boulanger·ère","Pâtissier·ère","Tourier·ère","Préparateur·rice","Chef·fe de production","Plongeur·se"],
+    Laboratoire: ["Responsable R&D","Technicien·ne laboratoire","Chef·fe de projet produit"],
+    Siège: ["Comptable","Chargé·e RH","Office Manager","Responsable marketing","Contrôleur·se de gestion","Data Analyst"],
+  };
+  const statuses = ["published","published","published","published","archived","draft"];
+
+  // Canaux de sourcing : poids (volume) + qualité (multiplie le passage dans l'entonnoir).
+  const SOURCES = [
+    { name: "Indeed", w: 30, q: 0.85 }, { name: "Site carrière", w: 18, q: 1.15 },
+    { name: "LinkedIn", w: 16, q: 1.1 }, { name: "HelloWork", w: 14, q: 0.9 },
+    { name: "Cooptation", w: 9, q: 1.5 }, { name: "Instagram", w: 8, q: 0.8 },
+    { name: "Spontané", w: 5, q: 0.7 },
+  ];
+  const srcPairs = SOURCES.map((s) => [s.name, s.w]);
+  const srcQ = Object.fromEntries(SOURCES.map((s) => [s.name, s.q]));
+  const proactive = new Set(["LinkedIn", "Cooptation"]);
+
+  // Objectifs mensuels d'embauche par pôle.
+  const targets = { Vente: 9, Production: 6, Laboratoire: 1, Siège: 2 };
+
+  const poleWeights = [["Vente", 13], ["Production", 8], ["Laboratoire", 3], ["Siège", 5]];
+  const NB_JOBS = 34;
+  const jobs = [];
+  const unitCursor = {}, venteCursor = { i: 0 }, prodCursor = { i: 0 };
+  for (let i = 0; i < NB_JOBS; i++) {
+    const pole = i < 6 ? ["Vente","Vente","Production","Production","Siège","Laboratoire"][i] : wpick(rng, poleWeights);
+    const units = UNITS[pole];
+    let unit = null;
+    if (units.length) { const c = unitCursor[pole] || 0; unit = units[c % units.length]; unitCursor[pole] = c + 1; }
+    let locName;
+    if (pole === "Vente") { locName = VENTE_LOCS[venteCursor.i % VENTE_LOCS.length]; venteCursor.i++; }
+    else if (pole === "Production") { locName = PROD_LOCS[prodCursor.i % PROD_LOCS.length]; prodCursor.i++; }
+    else if (pole === "Laboratoire") locName = "Laboratoire R&D";
+    else locName = "Siège";
+    jobs.push({
+      id: `j${i + 1}`,
+      title: pick(rng, TITLES[pole]),
+      status: i < 20 ? "published" : pick(rng, statuses),
+      createdAt: daysAgo(Math.floor(rng() * 540) + 10),
+      recruiterId: pick(rng, users).id,
+      departmentId: departments.find((d) => d.name === pole).id,
+      pole, unit,
+      locationIds: [locIdByName.get(locName)],
+    });
+  }
+
+  const passRate = { toScreening: 0.6, toInterview: 0.5, toOffer: 0.42, toHired: 0.7 };
+  const rejectIfNotHired = 0.55;
+  const stageLeadDays = { inbox: 2, screening: 5, interview: 12, offer: 22, hired: 32 };
+  const clamp = (x) => Math.min(0.93, x);
+
+  const applications = [];
+  const N = 1750;
+  for (let i = 0; i < N; i++) {
+    const job = pick(rng, jobs);
+    const createdDaysAgo = Math.floor(rng() * 720) + 1; // 24 mois d'historique
+    const createdAt = daysAgo(createdDaysAgo);
+    const source = wpick(rng, srcPairs);
+    const q = srcQ[source];
+
+    let cat = "inbox";
+    if (rng() < clamp(passRate.toScreening * q)) {
+      cat = "screening";
+      if (rng() < clamp(passRate.toInterview * q)) {
+        cat = "interview";
+        if (rng() < clamp(passRate.toOffer * q)) {
+          cat = "offer";
+          if (rng() < clamp(passRate.toHired * q)) cat = "hired";
+        }
+      }
+    }
+
+    // Une candidature non embauchée et ancienne (>55 j) est forcément clôturée (rejetée) :
+    // seules les candidatures récentes restent "actives" dans le pipeline (réaliste).
+    let rejectedAt = null;
+    const ancienne = createdDaysAgo > 55;
+    if (cat !== "hired" && (ancienne || rng() < rejectIfNotHired)) {
+      const rejAfter = Math.min(createdDaysAgo, Math.floor(rng() * 40) + 3);
+      rejectedAt = daysAgo(Math.max(0, createdDaysAgo - rejAfter));
+    }
+    const lead = Math.min(createdDaysAgo, stageLeadDays[cat] + Math.floor(rng() * 12));
+    const changedStageAt = daysAgo(Math.max(0, createdDaysAgo - lead));
+
+    applications.push({
+      id: `a${i + 1}`, createdAt, changedStageAt, rejectedAt,
+      stageId: pick(rng, stageByCat[cat] || ["s1"]),
+      stageType: cat,
+      source,
+      sourced: proactive.has(source),
+      jobId: job.id, candidateId: `c${i + 1}`, recruiterId: job.recruiterId,
+    });
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    source: "mock",
+    jobs, applications, stages, stageTypes, users, departments, locations,
+    poles: ["Vente", "Production", "Laboratoire", "Siège"],
+    units: UNITS,
+    targets,
+    sources: SOURCES.map((s) => s.name),
+  };
+}
+
+import fs from "node:fs";
+const live = hasApiKey();
+const ds = live ? await fetchDataset() : mockDataset();
+fs.writeFileSync("data.js", "window.__TT_DATA__=" + JSON.stringify(ds) + ";");
+console.log("data.js ecrit:", ds.source, ds.jobs.length, "postes", ds.applications.length, "candidatures");
