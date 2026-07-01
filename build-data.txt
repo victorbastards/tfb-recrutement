@@ -104,8 +104,8 @@ function canonCategory(raw) {
 // toute autre production = Production (production boutique). Vente = Vente,
 // fonctions support = Siège. Les grades se déduisent de l'intitulé du poste.
 function venteGrade(t) {
-  if (/assistant.*store manager|adjoint|assistant\(e\)\s*store/.test(t)) return "B2";
-  if (/store manager|responsable\s*(de\s*)?boutique/.test(t)) return "B3";
+  if (/assistant.*(store manager|manager de boutique)|adjoint/.test(t)) return "B2";
+  if (/store manager|manager de boutique|responsable\s*(de\s*)?boutique/.test(t)) return "B3";
   if (/conseiller|vendeur|barista|[ée]quipier|\bvente\b|caisse/.test(t)) return "B1";
   return null;
 }
@@ -121,7 +121,7 @@ function classifyJob(deptName, title, locNames) {
   const isProdDept = ["laboratoire", "boulangerie", "production"].includes(dep);
   const isProdRole = /boulanger|p[aâ]tissier|tourier|commis|ouvrier|pr[ée]par|snack|cuisine|p[eé]trin|\bfour\b|plongeur|\bhub\b|production/.test(t);
   const isVenteDept = dep === "vente";
-  const isVenteRole = /conseiller|vendeur|store manager|barista|[ée]quipier|caisse/.test(t);
+  const isVenteRole = /conseiller|vendeur|store manager|manager de boutique|barista|[ée]quipier|caisse/.test(t);
   // Vente prioritaire si département vente ou intitulé clairement vente et pas un rôle de prod
   if ((isVenteDept || isVenteRole) && !isProdDept && !isProdRole) {
     return { pole: "Vente", unit: venteGrade(t) };
