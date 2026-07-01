@@ -228,7 +228,7 @@ const jobById=new Map(DS.jobs.map(j=>[j.id,j]));
 const locById=new Map(DS.locations.map(l=>[l.id,l]));
 const userById=new Map(DS.users.map(u=>[u.id,u]));
 const locName=(j)=>{const id=(j.locationIds||[])[0];return id&&locById.get(id)?locById.get(id).name:"—";};
-const LOC_ACRO=[[/oberkampf/i,"OBK"],[/saint.?ferdinand/i,"SFD"],[/saint.?denis/i,"SDN"],[/pigalle/i,"PIG"],[/s[eè]vres/i,"SEV"],[/temple/i,"TMP"],[/l[eé]vis/i,"LEV"],[/parmentier|neuilly/i,"NEU"],[/rambuteau/i,"RAM"],[/louise michel|levallois/i,"LVA"],[/\bbac\b/i,"BAC"],[/pompe/i,"POM"],[/chalifert/i,"Chalifert"],[/lognes/i,"Lognes"],[/si[\u00e8e]ge/i,"Siège"],[/bordeaux.*(saint.?georges|st.?georges)/i,"BDX-SG"],[/bordeaux.*grands? hommes/i,"BDX-GH"],[/bordeaux.*dijeaux/i,"BDX-DIJ"],[/basse.*lille|lille.*basse/i,"LIL-B"],[/neuve.*lille|lille.*neuve/i,"LIL-N"]];
+const LOC_ACRO=[[/oberkampf/i,"OB"],[/saint.?ferdinand/i,"SF"],[/saint.?denis/i,"SD"],[/pigalle/i,"PG"],[/s[eè]vres/i,"SV"],[/temple/i,"TP"],[/l[eé]vis/i,"LV"],[/parmentier|neuilly/i,"NE"],[/rambuteau/i,"RB"],[/louise michel|levallois/i,"LP"],[/\bbac\b/i,"BC"],[/pompe/i,"PP"],[/chalifert/i,"Chalifert"],[/lognes/i,"Lognes"],[/si[\u00e8e]ge/i,"Siège"],[/grands? hommes/i,"BGH"],[/dijeaux/i,"BDJ"],[/camille julian/i,"BCJ"],[/basse.*lille|lille.*basse/i,"LBA"],[/neuve.*lille|lille.*neuve/i,"LNV"],[/bordeaux/i,"BDX"]];
 function shortLoc(name){if(!name||name==="—")return "—";for(const it of LOC_ACRO){if(it[0].test(name))return it[1];}return name.split(" - ")[0].trim();}
 
 function filterDataset(opt){
