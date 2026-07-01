@@ -145,19 +145,30 @@ async function fetchDataset() {
 
   // 2. Jobs — l'API ne renvoie que le statut "open" par défaut, or les candidatures
   // pointent aussi vers des offres archivées/clôturées : on boucle sur tous les statuts.
-  const JOB_STATUSES = ["open", "archived", "unlisted", "draft", "temp", "rejected", "scheduled"];
+  const JOB_STATUSES = ["open", "published", "archived", "unlisted", "draft", "temp", "rejected", "scheduled"];
   const _jobsAll = [];
   const _seenJob = new Set();
+  const _addJobs = (arr) => {
+    for (const j of arr) {
+      const id = String(j.id);
+      if (!_seenJob.has(id)) { _seenJob.add(id); _jobsAll.push(j); }
+    }
+  };
+  // Appel par défaut (sans filtre) : renvoie les offres actives/open.
+  const _partDefault = await fetchAll(
+    "/v1/jobs",
+    { include: "department,locations,user" },
+    5000
+  ).catch(() => ({ data: [] }));
+  _addJobs(_partDefault.data);
+  // Puis chaque statut explicitement (archived, unlisted, draft...).
   for (const st of JOB_STATUSES) {
     const part = await fetchAll(
       "/v1/jobs",
       { include: "department,locations,user", "filter[status]": st },
       5000
     ).catch(() => ({ data: [] }));
-    for (const j of part.data) {
-      const id = String(j.id);
-      if (!_seenJob.has(id)) { _seenJob.add(id); _jobsAll.push(j); }
-    }
+    _addJobs(part.data);
   }
   const jobsRaw = { data: _jobsAll };
   const deptNameById = new Map(departments.map((d) => [d.id, d.name]));
