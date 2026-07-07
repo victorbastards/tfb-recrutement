@@ -61,7 +61,7 @@ async function fetchAll(path, params = {}, max = 5000) {
   const included = [];
   let guard = 0;
 
-  while (url && data.length < max && guard < 800) {
+  while (url && data.length < max && guard < 4000) {
     guard++;
     const json = await request(url, c);
     if (Array.isArray(json.data)) data.push(...json.data);
@@ -234,7 +234,7 @@ async function fetchDataset() {
   const appsRaw = await fetchAll(
     "/v1/job-applications",
     { include: "job,stage,candidate", sort: "-created-at" },
-    15000
+    100000
   );
   const applications = appsRaw.data.map((a) => {
     const stageId = rel(a, "stage");
