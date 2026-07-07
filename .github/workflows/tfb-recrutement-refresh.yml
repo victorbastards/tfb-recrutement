@@ -1,0 +1,31 @@
+name: Rafraîchir les données recrutement
+
+# Déclenche un rebuild Netlify chaque matin : le build relance build-data.mjs
+# qui ré-interroge Teamtailor et régénère data.js à jour. Lancer manuellement
+# ("Run workflow") = rafraîchir tout de suite.
+# À uploader dans le repo tfb-recrutement sous : .github/workflows/refresh.yml
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 5 * * *'   # ~07:20 Paris (été) / 06:20 (hiver)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recrutement-refresh
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Commit vide -> rebuild Netlify (régénère data.js depuis Teamtailor)
+        run: |
+          git config user.name "tfb-bot"
+          git config user.email "bot@thefrenchbastards.fr"
+          git commit --allow-empty -m "chore: refresh Teamtailor $(date -u +%FT%TZ)"
+          git push
