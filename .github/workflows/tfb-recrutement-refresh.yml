@@ -1,9 +1,9 @@
 name: Rafraîchir les données recrutement
 
-# Déclenche un rebuild Netlify chaque matin : le build relance build-data.mjs
-# qui ré-interroge Teamtailor et régénère data.js à jour. Lancer manuellement
-# ("Run workflow") = rafraîchir tout de suite.
-# À uploader dans le repo tfb-recrutement sous : .github/workflows/refresh.yml
+# Extrait Teamtailor UNE FOIS PAR JOUR et commit data.js dans le repo.
+# Le build Netlify réutilise ensuite ce data.js (build rapide).
+# Nécessite le secret GitHub : TEAMTAILOR_API_KEY (et éventuellement
+# TEAMTAILOR_STACK = eu, TEAMTAILOR_API_VERSION = 20240904).
 
 on:
   workflow_dispatch:
@@ -18,14 +18,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  trigger:
+  refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - name: Commit vide -> rebuild Netlify (régénère data.js depuis Teamtailor)
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Extraction Teamtailor -> data.js
+        env:
+          TEAMTAILOR_API_KEY: ${{ secrets.TEAMTAILOR_API_KEY }}
+          TEAMTAILOR_STACK: ${{ secrets.TEAMTAILOR_STACK }}
+          TEAMTAILOR_API_VERSION: ${{ secrets.TEAMTAILOR_API_VERSION }}
+        run: |
+          cp build-data.txt build-data.mjs
+          node build-data.mjs
+
+      - name: Commit data.js
         run: |
           git config user.name "tfb-bot"
           git config user.email "bot@thefrenchbastards.fr"
-          git commit --allow-empty -m "chore: refresh Teamtailor $(date -u +%FT%TZ)"
+          git add data.js
+          git commit -m "chore: refresh Teamtailor data $(date -u +%FT%TZ)" || echo "rien a committer"
+          git pull --rebase origin main || true
           git push
