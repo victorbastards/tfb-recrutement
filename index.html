@@ -9,12 +9,12 @@
 <style>
   :root{
     --bg:#FBF6EF; --card:#FFFFFF; --line:#EDE4D6; --ink:#2B2018; --muted:#8A7B6B;
-    --accent:#C8772E; --accent-soft:#FBEEDF; --good:#3C8C5A; --good-soft:#E7F2EB;
-    --bad:#C0432F; --blue:#4E79A7;
+    --accent:#C8772E; --accent-soft:#FBEEDF; --good:#3C8C5A; --good-soft:#E7F2EB; --bad:#C0432F;
     --s1:#E0A458; --s2:#C8772E; --s3:#4E79A7; --s4:#7BA05B; --s5:#3C8C5A;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  a{color:inherit;}
   .topbar{display:flex;align-items:center;gap:16px;padding:18px 24px;flex-wrap:wrap;}
   .brand{display:flex;align-items:center;gap:14px;}
   .logo{border:2px solid var(--ink);border-radius:8px;padding:6px 10px;font-weight:800;line-height:1;font-size:12px;letter-spacing:.5px;text-align:center;}
@@ -26,42 +26,49 @@
   .live-dot i{width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block;}
   .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:0 24px 8px;}
   .seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;}
-  .seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 16px;border-radius:999px;cursor:pointer;}
+  .seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;}
   .seg button.active{background:var(--accent);color:#fff;}
   .chip{border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;}
   .chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
   label.fld{font-size:12px;color:var(--muted);display:inline-flex;flex-direction:column;gap:2px;}
   select,input[type=date]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);}
-  .filters{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;padding:6px 24px 14px;}
-  .filters .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .filters{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;padding:6px 24px 14px;}
+  .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
   .glabel{font-size:12px;color:var(--muted);margin-right:2px;}
   main{padding:4px 24px 40px;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
-  .kpi .v{font-size:30px;font-weight:800;}
+  .kpi .v{font-size:29px;font-weight:800;}
   .kpi .l{color:var(--muted);font-size:13px;margin-top:2px;}
+  .kpi .d{font-size:12px;margin-top:6px;font-weight:600;}
+  .up{color:var(--good);} .down{color:var(--bad);}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px;}
   .card h3{margin:0 0 12px;font-size:16px;}
   .card .note{color:var(--muted);font-size:12px;margin:-6px 0 12px;}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
-  th{ text-align:left;color:var(--muted);font-weight:600;padding:8px 8px;border-bottom:2px solid var(--line);white-space:nowrap;}
-  td{padding:9px 8px;border-top:1px solid #F2ECE3;vertical-align:middle;}
-  td.job{font-weight:600;}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px 8px;border-bottom:2px solid var(--line);white-space:nowrap;}
+  td{padding:10px 8px;border-top:1px solid #F2ECE3;vertical-align:middle;}
+  td.job a{font-weight:700;text-decoration:none;border-bottom:1px dotted var(--muted);}
+  td.job a:hover{color:var(--accent);border-color:var(--accent);}
   .tag{display:inline-block;font-size:11px;color:var(--muted);background:#F6EFE5;border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-right:4px;}
-  .stbar{display:flex;height:16px;border-radius:5px;overflow:hidden;min-width:120px;background:#F2ECE3;}
+  .stchip{display:inline-block;font-size:11.5px;border:1px solid var(--line);border-left-width:4px;border-radius:6px;padding:2px 7px;margin:2px 4px 2px 0;white-space:nowrap;}
+  .stchip b{font-weight:800;}
+  .stbar{display:flex;height:14px;border-radius:5px;overflow:hidden;min-width:110px;background:#F2ECE3;}
   .stbar span{display:block;height:100%;}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px;}
   .legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;}
   .num{text-align:right;font-variant-numeric:tabular-nums;}
-  .funnel{display:flex;flex-direction:column;gap:8px;}
-  .frow{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:10px;}
-  .ftrack{background:#F2ECE3;border-radius:6px;height:26px;position:relative;overflow:hidden;}
-  .ffill{height:100%;border-radius:6px;}
-  .fmeta{font-size:12px;color:var(--muted);text-align:right;}
+  .funnel{display:flex;flex-direction:column;gap:10px;}
+  .frow{display:grid;grid-template-columns:150px 1fr 210px;align-items:center;gap:12px;}
+  .ftrack{background:#F2ECE3;border-radius:6px;height:28px;position:relative;overflow:hidden;}
+  .ffill{height:100%;border-radius:6px;min-width:2px;}
+  .fmeta{font-size:12px;color:var(--muted);text-align:right;line-height:1.35;}
+  .fmeta b{color:var(--ink);}
+  .cmp{color:var(--accent);}
   .canvas-wrap{position:relative;height:300px;}
   .muted{color:var(--muted);}
   .hidden{display:none !important;}
-  @media(max-width:640px){.frow{grid-template-columns:110px 1fr 90px;}}
+  @media(max-width:680px){.frow{grid-template-columns:110px 1fr;}.fmeta{grid-column:2;text-align:left;}}
 </style>
 </head>
 <body>
@@ -80,43 +87,48 @@
       <button data-view="hist">Historique</button>
     </div>
     <div class="spacer"></div>
-    <div id="histDates" class="hidden" style="display:flex;gap:10px;align-items:flex-end;">
-      <label class="fld">Du <input type="date" id="from"></label>
-      <label class="fld">Au <input type="date" id="to"></label>
-      <span class="seg"><button data-days="30">30 j</button><button data-days="90">90 j</button><button data-days="365">12 mois</button><button data-days="0">Tout</button></span>
+    <div id="histDates" class="hidden" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="grp">
+        <label class="fld">Du <input type="date" id="from"></label>
+        <label class="fld">Au <input type="date" id="to"></label>
+        <span class="seg"><button data-days="30">30 j</button><button data-days="90">90 j</button><button data-days="365">12 mois</button><button data-days="0">Tout</button></span>
+      </div>
+      <label class="fld" style="flex-direction:row;align-items:center;gap:6px;"><input type="checkbox" id="cmpOn"> Comparer à</label>
+      <div class="grp" id="cmpDates" style="display:none">
+        <label class="fld">Du <input type="date" id="from2"></label>
+        <label class="fld">Au <input type="date" id="to2"></label>
+      </div>
     </div>
   </div>
 
   <div class="filters">
     <div class="grp"><span class="glabel">Département (pôle)</span><span id="poleChips"></span></div>
-    <label class="fld">Grade (unité)
-      <select id="unitSel"><option value="">Tous</option></select>
+    <label class="fld" id="gradeWrap">Grade (unité)
+      <select id="unitSel"></select>
     </label>
   </div>
 
   <main>
-    <!-- LIVE -->
     <section id="viewLive">
       <div class="grid" id="liveKpis"></div>
       <div class="card">
         <h3>Pipeline consolidé — annonces ouvertes</h3>
-        <div class="note">Total des candidatures actives par étape, sur les postes actuellement ouverts (hors embauchés).</div>
+        <div class="note">Total des candidatures actives par grande étape, sur les postes actuellement ouverts (hors embauchés).</div>
         <div id="liveLegend" class="legend"></div>
-        <div class="canvas-wrap" style="height:150px"><canvas id="liveFunnelChart"></canvas></div>
+        <div class="canvas-wrap" style="height:130px"><canvas id="liveFunnelChart"></canvas></div>
       </div>
       <div class="card">
         <h3>Annonces ouvertes <span class="muted" id="liveJobsCount"></span></h3>
-        <div class="note">Nombre de candidatures par étape sur chaque annonce (barre = répartition ; hors embauchés).</div>
+        <div class="note">Clique le titre pour ouvrir la fiche Teamtailor. Les puces = les étapes telles que nommées dans l'annonce (candidatures actives).</div>
         <div style="overflow-x:auto"><table id="liveTable"></table></div>
       </div>
     </section>
 
-    <!-- HISTORIQUE -->
     <section id="viewHist" class="hidden">
       <div class="grid" id="histKpis"></div>
       <div class="card">
-        <h3>Entonnoir & conversion</h3>
-        <div class="note">Sur les candidatures créées dans la période. « Atteint l'étape » = candidature actuellement à cette étape ou plus loin.</div>
+        <h3>Entonnoir &amp; conversion</h3>
+        <div class="note">Candidatures créées dans la période. « Atteint » = actuellement à cette étape ou plus loin. On affiche le % vs étape précédente et le % vs boîte de réception.</div>
         <div class="funnel" id="histFunnel"></div>
       </div>
       <div class="card">
@@ -131,47 +143,71 @@
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const fmt=n=>new Intl.NumberFormat('fr-FR').format(Math.round(n||0));
   const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
-  // étapes canoniques (ordre entonnoir)
-  const STAGES=[['inbox','Boîte de réception',getVar('--s1')],['screening','Présélection',getVar('--s2')],['interview','Entretien',getVar('--s3')],['offer','Offre',getVar('--s4')],['hired','Embauché',getVar('--s5')]];
-  function getVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#ccc';}
-  const RANK={}; STAGES.forEach((s,i)=>RANK[s[0]]=i);
-  const ACTIVE=['inbox','screening','interview','offer']; // hors embauché
+  const gv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#ccc';
+  const TT_COMPANY='OlhEzMuu0XU@eu';
+  const jobUrl=id=>`https://app.teamtailor.com/companies/${TT_COMPANY}/jobs/${id}`;
+  const STAGES=[['inbox','Boîte de réception',gv('--s1')],['screening','Présélection',gv('--s2')],['interview','Entretien',gv('--s3')],['offer','Offre',gv('--s4')],['hired','Embauché',gv('--s5')]];
+  const RANK={}, CATLABEL={}, CATCOLOR={}; STAGES.forEach((s,i)=>{RANK[s[0]]=i;CATLABEL[s[0]]=s[1];CATCOLOR[s[0]]=s[2];});
+  RANK.in_process=1;
+  const ACTIVE=['inbox','screening','interview','offer'];
+  const GRADES={Vente:['B1','B2','B3'],Production:['P1','P2','P3']};
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const norm=s=>(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 
   function waitData(cb){ if(window.__TT_DATA__ && window.Chart){cb();} else {setTimeout(()=>waitData(cb),60);} }
 
   waitData(function(){
     const D=window.__TT_DATA__;
-    const jobs=D.jobs||[], apps=D.applications||[];
+    const jobs=D.jobs||[], apps=D.applications||[], stages=D.stages||[];
     const jobById={}; jobs.forEach(j=>jobById[j.id]=j);
+    const stageById={}; stages.forEach(s=>stageById[s.id]=s);
     const POLES=['Vente','Production','Laboratoire','Siège'];
-    const UNITS=[...new Set(jobs.map(j=>j.unit).filter(Boolean))].sort();
 
-    const state={view:'live', pole:'', unit:'', from:null, to:null};
+    // --- normalisation des noms d'étapes : on choisit le libellé le plus fréquent par clé normalisée ---
+    const variant={};
+    apps.forEach(a=>{const st=stageById[a.stageId];if(!st||!st.name)return;const nk=norm(st.name);const on=st.name.trim();(variant[nk]=variant[nk]||{})[on]=(variant[nk][on]||0)+1;});
+    const display={}; Object.keys(variant).forEach(nk=>{display[nk]=Object.entries(variant[nk]).sort((x,y)=>y[1]-x[1])[0][0];});
+    function stageInfo(a){const st=stageById[a.stageId];const cat=(st&&st.category)||a.stageType||'inbox';if(!st||!st.name)return{nk:cat,name:CATLABEL[cat]||cat,cat};const nk=norm(st.name);return{nk,name:display[nk]||st.name,cat};}
 
-    // ---- header ----
+    const state={view:'live',pole:'',unit:'',from:null,to:null,cmp:false,from2:null,to2:null};
+
     const gen=D.generatedAt?new Date(D.generatedAt):null;
-    $('#sub').textContent = (gen?('Actualisé le '+gen.toLocaleString('fr-FR')):'')+' · '+fmt(jobs.length)+' annonces · '+fmt(apps.length)+' candidatures';
+    $('#sub').textContent=(gen?('Actualisé le '+gen.toLocaleString('fr-FR')):'')+' · '+fmt(jobs.length)+' annonces · '+fmt(apps.length)+' candidatures';
 
-    // ---- filtres ----
+    // ---- filtres pôle ----
     const pc=$('#poleChips');
-    const mkChip=(val,lab)=>{const b=document.createElement('button');b.className='chip'+(val===state.pole?' active':'');b.textContent=lab;b.onclick=()=>{state.pole=val;pc.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));b.classList.add('active');render();};return b;};
-    pc.appendChild(mkChip('','Tous'));
-    POLES.forEach(p=>pc.appendChild(mkChip(p,p)));
-    const us=$('#unitSel');
-    UNITS.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;us.appendChild(o);});
-    const oNr=document.createElement('option');oNr.value='__none__';oNr.textContent='(non renseigné)';us.appendChild(oNr);
-    us.onchange=()=>{state.unit=us.value;render();};
+    function buildPoles(){
+      pc.innerHTML='';
+      const mk=(v,l)=>{const b=document.createElement('button');b.className='chip'+(v===state.pole?' active':'');b.textContent=l;b.onclick=()=>{state.pole=v;state.unit='';buildPoles();buildGrade();render();};return b;};
+      pc.appendChild(mk('','Tous'));POLES.forEach(p=>pc.appendChild(mk(p,p)));
+    }
+    const gradeWrap=$('#gradeWrap'), us=$('#unitSel');
+    function buildGrade(){
+      const gs=GRADES[state.pole];
+      if(!gs){gradeWrap.style.display='none';us.innerHTML='';return;}
+      gradeWrap.style.display='';
+      us.innerHTML='<option value="">Tous grades</option>'+gs.map(g=>`<option value="${g}">${g}</option>`).join('');
+      us.value=state.unit||'';
+      us.onchange=()=>{state.unit=us.value;render();};
+    }
+    buildPoles();buildGrade();
 
-    // ---- dates (historique) ----
-    const dates=apps.map(a=>(a.createdAt||'').slice(0,10)).filter(Boolean).sort();
-    const dMin=dates[0]||'2024-01-01', dMax=(D.generatedAt||dates[dates.length-1]||'').slice(0,10)||dMin;
-    function setRange(days){ let f=dMin; if(days){const d=new Date(dMax+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(days-1));f=d.toISOString().slice(0,10);if(f<dMin)f=dMin;} $('#from').value=f;$('#to').value=dMax;state.from=f;state.to=dMax; }
+    // ---- dates ----
+    const dts=apps.map(a=>(a.createdAt||'').slice(0,10)).filter(Boolean).sort();
+    const dMin=dts[0]||'2024-01-01', dMax=(D.generatedAt||dts[dts.length-1]||'').slice(0,10)||dMin;
+    const addDays=(base,days)=>{const d=new Date(base+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(days-1));let f=d.toISOString().slice(0,10);return f<dMin?dMin:f;};
+    function setRange(days){state.to=dMax;state.from=days?addDays(dMax,days):dMin;$('#from').value=state.from;$('#to').value=state.to;}
     setRange(90);
+    // période B par défaut = période équivalente juste avant A
+    function defaultB(){const span=(new Date(state.to)-new Date(state.from))/86400000;const t2=new Date(state.from+'T00:00:00Z');t2.setUTCDate(t2.getUTCDate()-1);state.to2=t2.toISOString().slice(0,10);const f2=new Date(state.to2+'T00:00:00Z');f2.setUTCDate(f2.getUTCDate()-span);state.from2=f2.toISOString().slice(0,10);$('#from2').value=state.from2;$('#to2').value=state.to2;}
+    defaultB();
     $('#from').addEventListener('change',()=>{state.from=$('#from').value;render();});
     $('#to').addEventListener('change',()=>{state.to=$('#to').value;render();});
-    $$('#histDates .seg button').forEach(b=>b.addEventListener('click',()=>{setRange(+b.dataset.days);render();}));
+    $$('#histDates .seg button').forEach(b=>b.addEventListener('click',()=>{setRange(+b.dataset.days);defaultB();render();}));
+    $('#cmpOn').addEventListener('change',e=>{state.cmp=e.target.checked;$('#cmpDates').style.display=state.cmp?'flex':'none';render();});
+    $('#from2').addEventListener('change',()=>{state.from2=$('#from2').value;render();});
+    $('#to2').addEventListener('change',()=>{state.to2=$('#to2').value;render();});
 
-    // ---- bascule de vue ----
     $$('#viewSeg button').forEach(b=>b.addEventListener('click',()=>{
       state.view=b.dataset.view;
       $$('#viewSeg button').forEach(x=>x.classList.toggle('active',x===b));
@@ -181,83 +217,96 @@
       render();
     }));
 
-    // ---- helpers filtres ----
-    function jobPass(j){ if(!j)return false; if(state.pole&&j.pole!==state.pole)return false; if(state.unit){ if(state.unit==='__none__'){if(j.unit)return false;} else if(j.unit!==state.unit)return false;} return true; }
-    function appPass(a){ return jobPass(jobById[a.jobId]); }
+    function jobPass(j){if(!j)return false;if(state.pole&&j.pole!==state.pole)return false;if(state.unit&&j.unit!==state.unit)return false;return true;}
+    function appPass(a){return jobPass(jobById[a.jobId]);}
 
     const charts={};
-    function draw(id,cfg){ if(charts[id])charts[id].destroy(); charts[id]=new Chart($('#'+id),cfg); }
+    function draw(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($('#'+id),cfg);}
 
     // =================== LIVE ===================
     function renderLive(){
       const openJobs=jobs.filter(j=>j.status==='open'&&jobPass(j));
       const openIds=new Set(openJobs.map(j=>j.id));
       const liveApps=apps.filter(a=>openIds.has(a.jobId));
-      // consolidé par étape (actives)
-      const byStage={}; ACTIVE.forEach(s=>byStage[s]=0);
-      liveApps.forEach(a=>{ if(ACTIVE.includes(a.stageType)) byStage[a.stageType]++; });
-      const totalActive=ACTIVE.reduce((s,k)=>s+byStage[k],0);
-      // KPIs
+      const byCat={};ACTIVE.forEach(s=>byCat[s]=0);
+      liveApps.forEach(a=>{if(ACTIVE.includes(a.stageType))byCat[a.stageType]++;});
+      const tot=ACTIVE.reduce((s,k)=>s+byCat[k],0);
       $('#liveKpis').innerHTML=[
         ['Postes ouverts',fmt(openJobs.length)],
-        ['Candidatures actives',fmt(totalActive)],
-        ['À trier (boîte de réception)',fmt(byStage.inbox)],
-        ['En entretien + offre',fmt(byStage.interview+byStage.offer)]
+        ['Candidatures actives',fmt(tot)],
+        ['À trier (boîte de réception)',fmt(byCat.inbox)],
+        ['En entretien + offre',fmt(byCat.interview+byCat.offer)]
       ].map(k=>`<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div></div>`).join('');
-      // légende + funnel bar chart (horizontal)
-      $('#liveLegend').innerHTML=ACTIVE.map(k=>{const st=STAGES[RANK[k]];return `<span><b style="background:${st[2]}"></b>${st[1]} · ${fmt(byStage[k])}</span>`;}).join('');
-      draw('liveFunnelChart',{type:'bar',data:{labels:['Candidatures actives'],datasets:ACTIVE.map(k=>({label:STAGES[RANK[k]][1],data:[byStage[k]],backgroundColor:STAGES[RANK[k]][2]}))},
+      $('#liveLegend').innerHTML=ACTIVE.map(k=>`<span><b style="background:${CATCOLOR[k]}"></b>${CATLABEL[k]} · ${fmt(byCat[k])}</span>`).join('');
+      draw('liveFunnelChart',{type:'bar',data:{labels:['Actives'],datasets:ACTIVE.map(k=>({label:CATLABEL[k],data:[byCat[k]],backgroundColor:CATCOLOR[k]}))},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:'#8A7B6B'}},y:{stacked:true,display:false}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.x)}}}}});
-      // table annonces
       $('#liveJobsCount').textContent='· '+openJobs.length;
       const rows=openJobs.map(j=>{
-        const ja=liveApps.filter(a=>a.jobId===j.id);
-        const c={}; ACTIVE.forEach(s=>c[s]=0); ja.forEach(a=>{if(ACTIVE.includes(a.stageType))c[a.stageType]++;});
-        const tot=ACTIVE.reduce((s,k)=>s+c[k],0);
+        const ja=liveApps.filter(a=>a.jobId===j.id&&ACTIVE.includes(a.stageType));
+        const byName={};ja.forEach(a=>{const si=stageInfo(a);const e=byName[si.nk]||(byName[si.nk]={name:si.name,cat:si.cat,n:0});e.n++;});
+        const list=Object.values(byName).sort((a,b)=>RANK[a.cat]-RANK[b.cat]||b.n-a.n);
+        const cat={};ACTIVE.forEach(s=>cat[s]=0);ja.forEach(a=>{if(cat[a.stageType]!=null)cat[a.stageType]++;});
         const age=gen?Math.round((gen-new Date(j.createdAt))/86400000):null;
-        return {j,c,tot,age};
+        return {j,list,cat,tot:ja.length,age};
       }).sort((a,b)=>b.tot-a.tot);
-      const head='<tr><th>Annonce</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition par étape</th>'+ACTIVE.map(k=>`<th class="num">${STAGES[RANK[k]][1].split(' ')[0]}</th>`).join('')+'<th class="num">Actives</th></tr>';
+      const head='<tr><th>Annonce</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition</th><th>Étapes (nommées)</th><th class="num">Actives</th></tr>';
       const body=rows.map(r=>{
-        const seg=ACTIVE.map(k=>r.tot?`<span style="width:${r.c[k]/r.tot*100}%;background:${STAGES[RANK[k]][2]}"></span>`:'').join('');
-        return `<tr><td class="job">${esc(r.j.title)}</td><td><span class="tag">${esc(r.j.pole||'—')}</span><span class="tag">${esc(r.j.unit||'—')}</span></td><td class="num">${r.age!=null?r.age+' j':'—'}</td>`
+        const seg=ACTIVE.map(k=>r.tot?`<span style="width:${r.cat[k]/r.tot*100}%;background:${CATCOLOR[k]}"></span>`:'').join('');
+        const chips=r.list.map(s=>`<span class="stchip" style="border-left-color:${CATCOLOR[s.cat]}">${esc(s.name)} <b>${s.n}</b></span>`).join('')||'<span class="muted">—</span>';
+        return `<tr><td class="job"><a href="${jobUrl(r.j.id)}" target="_blank" rel="noopener">${esc(r.j.title)}</a></td>`
+          +`<td><span class="tag">${esc(r.j.pole||'—')}</span>${r.j.unit?`<span class="tag">${esc(r.j.unit)}</span>`:''}</td>`
+          +`<td class="num">${r.age!=null?r.age+' j':'—'}</td>`
           +`<td><div class="stbar">${seg}</div></td>`
-          +ACTIVE.map(k=>`<td class="num">${r.c[k]||''}</td>`).join('')
+          +`<td>${chips}</td>`
           +`<td class="num"><b>${fmt(r.tot)}</b></td></tr>`;
       }).join('');
-      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="9" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
+      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="6" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
     }
 
     // =================== HISTORIQUE ===================
-    function renderHist(){
-      const inRange=a=>{const d=(a.createdAt||'').slice(0,10);return d>=state.from&&d<=state.to;};
-      const sel=apps.filter(a=>inRange(a)&&appPass(a));
+    function periodStats(from,to){
+      const sel=apps.filter(a=>{const d=(a.createdAt||'').slice(0,10);return d>=from&&d<=to&&appPass(a);});
       const n=sel.length;
-      const hired=sel.filter(a=>a.stageType==='hired').length;
+      const reached=STAGES.map(s=>sel.filter(a=>(RANK[a.stageType]??-1)>=RANK[s[0]]).length);
+      const hired=reached[4];
       const sourced=sel.filter(a=>a.sourced).length;
-      // atteint chaque étape (rank >= )
-      const reached=STAGES.map(s=>({key:s[0],label:s[1],color:s[2],n:sel.filter(a=>(RANK[a.stageType]??-1)>=RANK[s[0]]).length}));
+      return {sel,n,reached,hired,sourced};
+    }
+    function renderHist(){
+      const A=periodStats(state.from,state.to);
+      const B=state.cmp?periodStats(state.from2,state.to2):null;
+      const inbox=A.reached[0]||1;
+      const delta=(a,b)=>{if(!B)return '';const dv=b?Math.round((a-b)/b*1000)/10:(a>0?100:0);const cls=dv>=0?'up':'down';const ar=dv>=0?'▲':'▼';return `<div class="d ${cls}">${ar} ${Math.abs(dv)} % vs période B</div>`;};
       $('#histKpis').innerHTML=[
-        ['Candidatures',fmt(n)],
-        ['Embauches',fmt(hired)],
-        ['Taux d\'embauche',pct(hired,n)+' %'],
-        ['Sourcées',pct(sourced,n)+' %']
-      ].map(k=>`<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div></div>`).join('');
-      // funnel
-      const top=reached[0].n||1;
-      $('#histFunnel').innerHTML=reached.map((r,i)=>{
-        const conv=i===0?100:pct(r.n,reached[i-1].n);
-        return `<div class="frow"><div>${r.label}</div><div class="ftrack"><div class="ffill" style="width:${Math.max(2,r.n/top*100)}%;background:${r.color}"></div></div><div class="fmeta"><b>${fmt(r.n)}</b> · ${i===0?'—':conv+' %'}</div></div>`;
+        ['Candidatures',A.n,B&&B.n],
+        ['Embauches',A.hired,B&&B.hired],
+        ['Taux d\'embauche',pct(A.hired,A.n)+' %',B&&(pct(B.hired,B.n))],
+        ['Sourcées',pct(A.sourced,A.n)+' %',B&&pct(B.sourced,B.n)]
+      ].map(k=>{
+        const disp=typeof k[1]==='number'?fmt(k[1]):k[1];
+        let d='';
+        if(B){ if(typeof k[1]==='number'){d=delta(k[1],k[2]);} else {const av=parseFloat(k[1]),bv=parseFloat(k[2]);const dv=Math.round((av-bv)*10)/10;const cls=dv>=0?'up':'down';d=`<div class="d ${cls}">${dv>=0?'▲':'▼'} ${Math.abs(dv)} pts vs B</div>`;} }
+        return `<div class="kpi"><div class="v">${disp}</div><div class="l">${k[0]}</div>${d}</div>`;
       }).join('');
-      // trend mensuel
-      const byM={}; sel.forEach(a=>{const m=(a.createdAt||'').slice(0,7);if(m)byM[m]=(byM[m]||0)+1;});
+      // entonnoir
+      $('#histFunnel').innerHTML=STAGES.map((s,i)=>{
+        const nA=A.reached[i];
+        const stepPct=i===0?null:pct(nA,A.reached[i-1]);
+        const totPct=pct(nA,inbox);
+        let cmpLine='';
+        if(B){const bTot=pct(B.reached[i],B.reached[0]||1);cmpLine=`<span class="cmp"> · période B : ${bTot} % du total</span>`;}
+        const meta=`<b>${fmt(nA)}</b> · ${i===0?'—':stepPct+' % vs étape préc.'} · <b>${totPct} %</b> du total${cmpLine}`;
+        return `<div class="frow"><div>${s[1]}</div><div class="ftrack"><div class="ffill" style="width:${Math.max(2,nA/inbox*100)}%;background:${s[2]}"></div></div><div class="fmeta">${meta}</div></div>`;
+      }).join('');
+      // trend
+      const byM={};A.sel.forEach(a=>{const m=(a.createdAt||'').slice(0,7);if(m)byM[m]=(byM[m]||0)+1;});
       const months=Object.keys(byM).sort();
-      draw('histTrend',{type:'line',data:{labels:months.map(m=>{const[y,mo]=m.split('-');return ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'][+mo-1]+' '+y.slice(2);}),datasets:[{label:'Candidatures',data:months.map(m=>byM[m]),borderColor:getVar('--accent'),backgroundColor:'rgba(200,119,46,.12)',fill:true,tension:.25,pointRadius:months.length>24?0:3}]},
+      const ML=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+      draw('histTrend',{type:'line',data:{labels:months.map(m=>{const[y,mo]=m.split('-');return ML[+mo-1]+' '+y.slice(2);}),datasets:[{label:'Candidatures',data:months.map(m=>byM[m]),borderColor:gv('--accent'),backgroundColor:'rgba(200,119,46,.12)',fill:true,tension:.25,pointRadius:months.length>24?0:3}]},
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8A7B6B',maxRotation:0,autoSkip:true}},y:{ticks:{color:'#8A7B6B'},beginAtZero:true}}}});
     }
 
-    function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-    function render(){ if(state.view==='live')renderLive(); else renderHist(); }
+    function render(){state.view==='live'?renderLive():renderHist();}
     render();
   });
 })();
