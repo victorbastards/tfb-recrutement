@@ -169,6 +169,12 @@
     const display={}; Object.keys(variant).forEach(nk=>{display[nk]=Object.entries(variant[nk]).sort((x,y)=>y[1]-x[1])[0][0];});
     function stageInfo(a){const st=stageById[a.stageId];const cat=(st&&st.category)||a.stageType||'inbox';if(!st||!st.name)return{nk:cat,name:CATLABEL[cat]||cat,cat};const nk=norm(st.name);return{nk,name:display[nk]||st.name,cat};}
 
+    // --- boutiques (locations) -> acronyme usuel ---
+    const locById={}; (D.locations||[]).forEach(l=>locById[l.id]=l.name||'');
+    const LOC_RULES=[[/oberkampf/i,'OB'],[/saint-?denis/i,'SD'],[/ferdinand/i,'SF'],[/pigalle/i,'PG'],[/s[eè]vres/i,'SV'],[/temple/i,'TP'],[/l[eé]vis/i,'LV'],[/parmentier|neuilly/i,'NE'],[/rambuteau/i,'RB'],[/louise\s*michel|levallois/i,'LP'],[/\bbac\b/i,'BC'],[/pompe/i,'PP'],[/basse/i,'LBA'],[/neuve/i,'LNV'],[/dijeaux/i,'BDJ'],[/grands?\s*hommes/i,'BGH'],[/georges/i,'BCJ'],[/si[eè]ge/i,'Siège'],[/labo/i,'Labo']];
+    function locAcr(id){const n=locById[id]||'';for(const [re,a] of LOC_RULES) if(re.test(n)) return a; return (n.split('-')[0]||n).trim().slice(0,8);}
+    function boutiques(job){const ids=job.locationIds||[];const acs=[...new Set(ids.map(locAcr).filter(Boolean))];if(!acs.length)return '<span class="muted">—</span>';if(acs.length<=3)return acs.map(a=>`<span class="tag">${esc(a)}</span>`).join('');return `<span class="tag" title="${esc(acs.join(', '))}">${acs.length} sites</span>`;}
+
     const state={view:'live',pole:'',unit:'',from:null,to:null,cmp:false,from2:null,to2:null};
 
     const gen=D.generatedAt?new Date(D.generatedAt):null;
@@ -249,18 +255,19 @@
         const age=gen?Math.round((gen-new Date(j.createdAt))/86400000):null;
         return {j,list,cat,tot:ja.length,age};
       }).sort((a,b)=>b.tot-a.tot);
-      const head='<tr><th>Annonce</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition</th><th>Étapes (nommées)</th><th class="num">Actives</th></tr>';
+      const head='<tr><th>Annonce</th><th>Boutique</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition</th><th>Étapes (nommées)</th><th class="num">Actives</th></tr>';
       const body=rows.map(r=>{
         const seg=ACTIVE.map(k=>r.tot?`<span style="width:${r.cat[k]/r.tot*100}%;background:${CATCOLOR[k]}"></span>`:'').join('');
         const chips=r.list.map(s=>`<span class="stchip" style="border-left-color:${CATCOLOR[s.cat]}">${esc(s.name)} <b>${s.n}</b></span>`).join('')||'<span class="muted">—</span>';
         return `<tr><td class="job"><a href="${jobUrl(r.j.id)}" target="_blank" rel="noopener">${esc(r.j.title)}</a></td>`
+          +`<td>${boutiques(r.j)}</td>`
           +`<td><span class="tag">${esc(r.j.pole||'—')}</span>${r.j.unit?`<span class="tag">${esc(r.j.unit)}</span>`:''}</td>`
           +`<td class="num">${r.age!=null?r.age+' j':'—'}</td>`
           +`<td><div class="stbar">${seg}</div></td>`
           +`<td>${chips}</td>`
           +`<td class="num"><b>${fmt(r.tot)}</b></td></tr>`;
       }).join('');
-      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="6" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
+      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="7" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
     }
 
     // =================== HISTORIQUE ===================
