@@ -1,5 +1,10 @@
+# Build Netlify : si data.js est déjà présent (commité par le workflow GitHub),
+# on ne ré-extrait PAS Teamtailor -> build quasi instantané. Sinon (secours),
+# on lance l'extraction comme avant. L'extraction quotidienne se fait côté
+# GitHub Actions (workflow "Rafraîchir les données recrutement"), qui commit data.js.
 [build]
-  command = "cp build-data.txt build-data.mjs && node build-data.mjs"
+  command = "if [ -f data.js ]; then echo 'data.js present (commite) - build rapide, pas d extraction'; else cp build-data.txt build-data.mjs && node build-data.mjs; fi"
   publish = "."
+
 [build.environment]
   NODE_VERSION = "20"
