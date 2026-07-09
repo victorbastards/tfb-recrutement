@@ -235,27 +235,30 @@
       const openIds=new Set(openJobs.map(j=>j.id));
       const liveApps=apps.filter(a=>openIds.has(a.jobId));
       const byCat={};ACTIVE.forEach(s=>byCat[s]=0);
-      liveApps.forEach(a=>{if(ACTIVE.includes(a.stageType))byCat[a.stageType]++;});
+      liveApps.forEach(a=>{if(ACTIVE.includes(a.stageType)&&!a.rejectedAt)byCat[a.stageType]++;});
       const tot=ACTIVE.reduce((s,k)=>s+byCat[k],0);
+      const rejAll=liveApps.filter(a=>a.rejectedAt).length;
       $('#liveKpis').innerHTML=[
         ['Postes ouverts',fmt(openJobs.length)],
-        ['Candidatures actives',fmt(tot)],
+        ['Candidatures actives (hors rejetés)',fmt(tot)],
         ['À trier (boîte de réception)',fmt(byCat.inbox)],
-        ['En entretien + offre',fmt(byCat.interview+byCat.offer)]
+        ['Rejetés (annonces ouvertes)',fmt(rejAll)]
       ].map(k=>`<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div></div>`).join('');
       $('#liveLegend').innerHTML=ACTIVE.map(k=>`<span><b style="background:${CATCOLOR[k]}"></b>${CATLABEL[k]} · ${fmt(byCat[k])}</span>`).join('');
       draw('liveFunnelChart',{type:'bar',data:{labels:['Actives'],datasets:ACTIVE.map(k=>({label:CATLABEL[k],data:[byCat[k]],backgroundColor:CATCOLOR[k]}))},
         options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:'#8A7B6B'}},y:{stacked:true,display:false}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.x)}}}}});
       $('#liveJobsCount').textContent='· '+openJobs.length;
       const rows=openJobs.map(j=>{
-        const ja=liveApps.filter(a=>a.jobId===j.id&&ACTIVE.includes(a.stageType));
+        const jAll=liveApps.filter(a=>a.jobId===j.id);
+        const ja=jAll.filter(a=>ACTIVE.includes(a.stageType)&&!a.rejectedAt);
+        const rej=jAll.filter(a=>a.rejectedAt).length;
         const byName={};ja.forEach(a=>{const si=stageInfo(a);const e=byName[si.nk]||(byName[si.nk]={name:si.name,cat:si.cat,n:0});e.n++;});
         const list=Object.values(byName).sort((a,b)=>RANK[a.cat]-RANK[b.cat]||b.n-a.n);
         const cat={};ACTIVE.forEach(s=>cat[s]=0);ja.forEach(a=>{if(cat[a.stageType]!=null)cat[a.stageType]++;});
         const age=gen?Math.round((gen-new Date(j.createdAt))/86400000):null;
-        return {j,list,cat,tot:ja.length,age};
+        return {j,list,cat,tot:ja.length,rej,age};
       }).sort((a,b)=>b.tot-a.tot);
-      const head='<tr><th>Annonce</th><th>Boutique</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition</th><th>Étapes (nommées)</th><th class="num">Actives</th></tr>';
+      const head='<tr><th>Annonce</th><th>Boutique</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition</th><th>Étapes (nommées)</th><th class="num">Rejetés</th><th class="num">Actives</th></tr>';
       const body=rows.map(r=>{
         const seg=ACTIVE.map(k=>r.tot?`<span style="width:${r.cat[k]/r.tot*100}%;background:${CATCOLOR[k]}"></span>`:'').join('');
         const chips=r.list.map(s=>`<span class="stchip" style="border-left-color:${CATCOLOR[s.cat]}">${esc(s.name)} <b>${s.n}</b></span>`).join('')||'<span class="muted">—</span>';
@@ -265,9 +268,10 @@
           +`<td class="num">${r.age!=null?r.age+' j':'—'}</td>`
           +`<td><div class="stbar">${seg}</div></td>`
           +`<td>${chips}</td>`
+          +`<td class="num" style="color:var(--bad)">${r.rej?fmt(r.rej):''}</td>`
           +`<td class="num"><b>${fmt(r.tot)}</b></td></tr>`;
       }).join('');
-      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="7" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
+      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="8" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
     }
 
     // =================== HISTORIQUE ===================
