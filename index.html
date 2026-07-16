@@ -218,13 +218,16 @@
     const dMin=dts[0]||'2024-01-01', dMax=(D.generatedAt||dts[dts.length-1]||'').slice(0,10)||dMin;
     const addDays=(base,days)=>{const d=new Date(base+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(days-1));let f=d.toISOString().slice(0,10);return f<dMin?dMin:f;};
     function setRange(days){state.to=dMax;state.from=days?addDays(dMax,days):dMin;$('#from').value=state.from;$('#to').value=state.to;}
-    setRange(90);
+    $('#from').min=$('#to').min=dMin; $('#from').max=$('#to').max=dMax;
+    const rangeBtns=$$('#histDates .seg button');
+    const markRange=days=>rangeBtns.forEach(b=>b.classList.toggle('active', days!=null && +b.dataset.days===days));
+    setRange(90); markRange(90);
     // période B par défaut = période équivalente juste avant A
     function defaultB(){const span=(new Date(state.to)-new Date(state.from))/86400000;const t2=new Date(state.from+'T00:00:00Z');t2.setUTCDate(t2.getUTCDate()-1);state.to2=t2.toISOString().slice(0,10);const f2=new Date(state.to2+'T00:00:00Z');f2.setUTCDate(f2.getUTCDate()-span);state.from2=f2.toISOString().slice(0,10);$('#from2').value=state.from2;$('#to2').value=state.to2;}
     defaultB();
-    $('#from').addEventListener('change',()=>{state.from=$('#from').value;render();});
-    $('#to').addEventListener('change',()=>{state.to=$('#to').value;render();});
-    $$('#histDates .seg button').forEach(b=>b.addEventListener('click',()=>{setRange(+b.dataset.days);defaultB();render();}));
+    $('#from').addEventListener('change',()=>{state.from=$('#from').value;markRange(null);render();});
+    $('#to').addEventListener('change',()=>{state.to=$('#to').value;markRange(null);render();});
+    rangeBtns.forEach(b=>b.addEventListener('click',()=>{const dd=+b.dataset.days;setRange(dd);markRange(dd);defaultB();render();}));
     $('#cmpOn').addEventListener('change',e=>{state.cmp=e.target.checked;$('#cmpDates').style.display=state.cmp?'flex':'none';render();});
     $('#from2').addEventListener('change',()=>{state.from2=$('#from2').value;render();});
     $('#to2').addEventListener('change',()=>{state.to2=$('#to2').value;render();});
