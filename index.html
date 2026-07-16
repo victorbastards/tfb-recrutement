@@ -141,7 +141,7 @@
     <section id="viewAlertes" class="hidden">
       <div class="card">
         <h3>Alertes — nouveaux candidats <span class="muted" id="alertSince"></span></h3>
-        <div class="note">Candidats récemment entrés dans ces étapes clés. Clique « Candidat → » pour ouvrir la fiche Teamtailor, ou le titre de l'annonce pour l'annonce.</div>
+        <div class="note">Candidats récemment entrés dans ces étapes clés, sur les annonces actives (les annonces archivées sont exclues). Clique « Candidat → » pour ouvrir la fiche Teamtailor, ou le titre de l'annonce pour l'annonce.</div>
         <div class="grp"><span class="glabel">Entrés depuis</span>
           <span class="seg" id="alertWin">
             <button data-days="1">24 h</button><button data-days="2">48 h</button><button data-days="7" class="active">7 j</button><button data-days="30">30 j</button><button data-days="0">Tout</button>
@@ -356,6 +356,7 @@
         let rows=apps.filter(a=>{
           if(a.rejectedAt)return false;
           if(!appPass(a))return false;
+          const jb=jobById[a.jobId]; if(!jb||jb.status==='archived'||jb.status==='draft')return false; // annonces actives seulement (exclut les candidats bloqués sur des annonces mortes)
           if(stageInfo(a).nk!==t.nk)return false;
           if(cutoff){const c=a.changedStageAt?new Date(a.changedStageAt):null;if(!c||c<cutoff)return false;}
           return true;
