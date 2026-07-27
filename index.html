@@ -144,7 +144,7 @@
         <div class="note">Candidats récemment entrés dans ces étapes clés, sur les annonces actives (les annonces archivées sont exclues). Clique « Candidat → » pour ouvrir la fiche Teamtailor, ou le titre de l'annonce pour l'annonce.</div>
         <div class="grp"><span class="glabel">Entrés depuis</span>
           <span class="seg" id="alertWin">
-            <button data-days="1">24 h</button><button data-days="2">48 h</button><button data-days="7" class="active">7 j</button><button data-days="14">14 j</button>
+            <button data-days="1">24 h</button><button data-days="2">48 h</button><button data-days="7">7 j</button><button data-days="14" class="active">14 j</button>
           </span>
         </div>
       </div>
@@ -190,7 +190,7 @@
     function locAcr(id){const n=locById[id]||'';for(const [re,a] of LOC_RULES) if(re.test(n)) return a; return (n.split('-')[0]||n).trim().slice(0,8);}
     function boutiques(job){const ids=job.locationIds||[];const acs=[...new Set(ids.map(locAcr).filter(Boolean))];if(!acs.length)return '<span class="muted">—</span>';if(acs.length<=3)return acs.map(a=>`<span class="tag">${esc(a)}</span>`).join('');return `<span class="tag" title="${esc(acs.join(', '))}">${acs.length} sites</span>`;}
 
-    const state={view:'live',pole:'',unit:'',from:null,to:null,cmp:false,from2:null,to2:null,alertDays:7};
+    const state={view:'live',pole:'',unit:'',from:null,to:null,cmp:false,from2:null,to2:null,alertDays:14};
 
     const gen=D.generatedAt?new Date(D.generatedAt):null;
     $('#sub').textContent=(gen?('Actualisé le '+gen.toLocaleString('fr-FR')):'')+' · '+fmt(jobs.length)+' annonces · '+fmt(apps.length)+' candidatures';
@@ -346,7 +346,8 @@
     const ALERT_TARGETS=[
       {nk:norm('Vivier Vidéo Validé'),label:'Vivier Vidéo Validé',color:CATCOLOR.interview},
       {nk:norm('Entretien Boutique'),label:'Entretien Boutique',color:CATCOLOR.interview},
-      {nk:norm('Offre'),label:'Offre',color:CATCOLOR.offer}
+      {nk:norm('Offre'),label:'Offre',color:CATCOLOR.offer},
+      {cat:'hired',label:'Recruté',color:CATCOLOR.hired,allowArchived:true}
     ];
     function renderAlertes(){
       const days=state.alertDays;
@@ -356,8 +357,9 @@
         let rows=apps.filter(a=>{
           if(a.rejectedAt)return false;
           if(!appPass(a))return false;
-          const jb=jobById[a.jobId]; if(!jb||jb.status==='archived'||jb.status==='draft')return false; // annonces actives seulement (exclut les candidats bloqués sur des annonces mortes)
-          if(stageInfo(a).nk!==t.nk)return false;
+          const jb=jobById[a.jobId]; if(!jb)return false;
+          if(!t.allowArchived && (jb.status==='archived'||jb.status==='draft'))return false; // annonces actives (sauf Recruté : on garde même annonce clôturée)
+          const si=stageInfo(a); if(t.cat ? (si.cat!==t.cat) : (si.nk!==t.nk))return false;
           if(cutoff){const c=a.changedStageAt?new Date(a.changedStageAt):null;if(!c||c<cutoff)return false;}
           return true;
         });
