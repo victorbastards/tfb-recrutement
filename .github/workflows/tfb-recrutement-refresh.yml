@@ -35,11 +35,16 @@ jobs:
           cp build-data.txt build-data.mjs
           node build-data.mjs
 
-      - name: Commit data.js
+      # Journal des entrées dans les étapes clés (Vivier Vidéo Validé / Entretien
+      # Boutique / Offre / Recruté), par différence de snapshots quotidiens.
+      - name: Journal des evenements d'etape
+        run: node snapshot-events.mjs
+
+      - name: Commit data.js + journal d'evenements
         run: |
           git config user.name "tfb-bot"
           git config user.email "bot@thefrenchbastards.fr"
-          git add data.js
+          git add data.js stage-snapshot.json stage-events.json
           git commit -m "chore: refresh Teamtailor data $(date -u +%FT%TZ)" || echo "rien a committer"
           git pull --rebase origin main || true
           git push
