@@ -40,11 +40,19 @@ jobs:
       - name: Journal des evenements d'etape
         run: node snapshot-events.mjs
 
-      - name: Commit data.js + journal d'evenements
+      # Évaluations Teamtailor (Kit entretien B1) : interviews "published" -> evaluations.json
+      - name: Evaluations Teamtailor -> evaluations.json
+        env:
+          TEAMTAILOR_API_KEY: ${{ secrets.TEAMTAILOR_API_KEY }}
+          TEAMTAILOR_STACK: ${{ secrets.TEAMTAILOR_STACK }}
+          TEAMTAILOR_API_VERSION: ${{ secrets.TEAMTAILOR_API_VERSION }}
+        run: node fetch-evaluations.mjs
+
+      - name: Commit data.js + journal + evaluations
         run: |
           git config user.name "tfb-bot"
           git config user.email "bot@thefrenchbastards.fr"
-          git add data.js stage-snapshot.json stage-events.json
+          git add data.js stage-snapshot.json stage-events.json evaluations.json
           git commit -m "chore: refresh Teamtailor data $(date -u +%FT%TZ)" || echo "rien a committer"
           git pull --rebase origin main || true
           git push
