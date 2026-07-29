@@ -140,9 +140,14 @@
 
     <section id="viewAlertes" class="hidden">
       <div class="card">
-        <h3>Alertes — nouveaux candidats <span class="muted" id="alertSince"></span></h3>
-        <div class="note">Candidats récemment entrés dans ces étapes clés, sur les annonces actives (les annonces archivées sont exclues). Clique « Candidat → » pour ouvrir la fiche Teamtailor, ou le titre de l'annonce pour l'annonce.</div>
-        <div class="grp"><span class="glabel">Entrés depuis</span>
+        <h3>Alertes <span class="muted" id="alertSince"></span></h3>
+        <div class="note">Deux catégories : « Étapes de recrutement » (entrées Vivier / Entretien Boutique / Offre / Recruté) et « Évaluations entretiens » (Kit entretien B1 rempli, avec l'évaluateur). Clique « Candidat → » pour ouvrir la fiche Teamtailor.</div>
+        <div class="grp"><span class="glabel">Catégorie</span>
+          <span class="seg" id="alertCat">
+            <button data-cat="stages" class="active">Étapes de recrutement</button><button data-cat="evals">Évaluations entretiens</button>
+          </span>
+        </div>
+        <div class="grp"><span class="glabel">Période</span>
           <span class="seg" id="alertWin">
             <button data-days="1">24 h</button><button data-days="2">48 h</button><button data-days="7">7 j</button><button data-days="14" class="active">14 j</button>
           </span>
@@ -190,7 +195,7 @@
     function locAcr(id){const n=locById[id]||'';for(const [re,a] of LOC_RULES) if(re.test(n)) return a; return (n.split('-')[0]||n).trim().slice(0,8);}
     function boutiques(job){const ids=job.locationIds||[];const acs=[...new Set(ids.map(locAcr).filter(Boolean))];if(!acs.length)return '<span class="muted">—</span>';if(acs.length<=3)return acs.map(a=>`<span class="tag">${esc(a)}</span>`).join('');return `<span class="tag" title="${esc(acs.join(', '))}">${acs.length} sites</span>`;}
 
-    const state={view:'live',pole:'',unit:'',from:null,to:null,cmp:false,from2:null,to2:null,alertDays:14};
+    const state={view:'live',pole:'',unit:'',from:null,to:null,cmp:false,from2:null,to2:null,alertDays:14,alertCat:'stages'};
 
     const gen=D.generatedAt?new Date(D.generatedAt):null;
     $('#sub').textContent=(gen?('Actualisé le '+gen.toLocaleString('fr-FR')):'')+' · '+fmt(jobs.length)+' annonces · '+fmt(apps.length)+' candidatures';
@@ -245,6 +250,11 @@
     $$('#alertWin button').forEach(b=>b.addEventListener('click',()=>{
       state.alertDays=+b.dataset.days;
       $$('#alertWin button').forEach(x=>x.classList.toggle('active',x===b));
+      renderAlertes();
+    }));
+    $$('#alertCat button').forEach(b=>b.addEventListener('click',()=>{
+      state.alertCat=b.dataset.cat;
+      $$('#alertCat button').forEach(x=>x.classList.toggle('active',x===b));
       renderAlertes();
     }));
 
@@ -369,9 +379,14 @@
     async function renderAlertes(){
       const days=state.alertDays;
       const cutoff=(gen&&days)?new Date(gen.getTime()-days*86400000):null;
+      const cat=state.alertCat||'stages';
+      $$('#alertCat button').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
       const evAll=await ensureStageEvents();
       const useEvents=evAll.length>0;
-      $('#alertSince').textContent=(days?('· entrés '+(days<=2?('dans les '+(days*24)+' h'):('depuis '+days+' j'))):'· tout l\'historique')+(useEvents?' · via journal d\'entrées':' · état courant (journal en cours de constitution)');
+      const winTxt=days?((days<=2?('dans les '+(days*24)+' h'):('depuis '+days+' j'))):'tout l\'historique';
+      $('#alertSince').textContent=cat==='evals'
+        ?('· remplies '+winTxt)
+        :('· entrées '+winTxt+(useEvents?' · via journal d\'entrées':' · état courant (journal en cours)'));
       const blocksHtml=ALERT_TARGETS.map(t=>{
         const evKey = t.cat==='hired' ? 'hired' : t.nk;
         let items;
@@ -435,7 +450,7 @@
         ?`<div style="overflow-x:auto"><table><tr><th>Rempli le</th><th>Annonce</th><th>Boutique</th><th>Rempli par</th><th>Fiche</th></tr>${evBody}</table></div>`
         :`<div class="muted" style="padding:6px 0">${evData.length?'Aucune évaluation remplie sur cette période.':'Évaluations pas encore disponibles (après la prochaine extraction).'}</div>`;
       const evCard=`<div class="card"><h3><span class="stchip" style="border-left-color:var(--accent);font-size:14px">Évaluations · Kit entretien B1 <b>${evItems.length}</b></span></h3><div class="note">Interviews Teamtailor remplies (statut « publié ») sur la période, avec l'évaluateur.</div>${evTable}</div>`;
-      $('#alertBlocks').innerHTML=blocksHtml+evCard;
+      $('#alertBlocks').innerHTML = cat==='evals' ? evCard : blocksHtml;
     }
 
     function render(){state.view==='live'?renderLive():state.view==='hist'?renderHist():renderAlertes();}
