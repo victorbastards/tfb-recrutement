@@ -227,16 +227,16 @@ async function fetchDataset() {
     };
   });
 
-  // 3. Candidatures (le plus gros volume). On inclut job/stage/user/candidate pour
-  // que l'API renvoie les liens (sinon relationships.data est absent -> jobId/stageId nuls),
-  // et on trie du plus récent au plus ancien (sort=-created-at) pour que le plafond
-  // ne coupe pas les candidatures récentes.
-  const appsRaw = await fetchAll(
-    "/v1/job-applications",
-    { include: "job,stage,candidate", sort: "-created-at" },
-    100000
-  );
-  const applications = appsRaw.data.map((a) => {
+  // 3. Candidatures — RÉCUPÉRATION INCRÉMENTALE (le plus gros volume).
+  // Re-télécharger les ~37 000 candidatures chaque matin (~1 200 pages) dépassait
+  // les 30 min du job GitHub Actions -> timeout, dashboard figé. On ne récupère
+  // donc que les candidatures MODIFIÉES depuis le dernier build (tri -updated-at,
+  // arrêt anticipé) et on les fusionne dans le snapshot précédent (data.js commité,
+  // rechargé dans globalThis.__PREV_DATA__). Le tri -updated-at capture aussi bien
+  // les changements d'étape (changed-stage-at) et les rejets (rejected-at) que les
+  // nouvelles candidatures. Repli automatique sur une récupération COMPLÈTE si aucun
+  // snapshot n'existe, si l'API refuse le tri, ou si le total obtenu est incohérent.
+  const normalizeApp = (a) => {
     const stageId = rel(a, "stage");
     const stage = stageId ? stageById.get(stageId) : null;
     return {
@@ -246,19 +246,80 @@ async function fetchDataset() {
       rejectedAt: attr(a, "rejected-at"),
       stageId,
       // catégorie de l'étape courante
-      stageType: canonCategory(
-        attr(a, "stage-type") || (stage && stage.category)
-      ),
+      stageType: canonCategory(attr(a, "stage-type") || (stage && stage.category)),
       // candidat sourcé vs candidature spontanée (selon disponibilité)
       sourced: Boolean(attr(a, "sourced")),
-      // Canal de sourcing : selon le compte, peut venir d'un attribut de la candidature,
-      // du candidat, ou d'une activité. À confirmer via inspect-teamtailor.mjs.
+      // Canal de sourcing (selon le compte : attribut de la candidature/candidat/activité).
       source: attr(a, "source", "source-name", "channel") || null,
       jobId: rel(a, "job"),
       candidateId: rel(a, "candidate"),
       recruiterId: rel(a, "user"),
     };
-  });
+  };
+
+  // Récupération complète (1er build ou repli de secours) : trie par -created-at
+  // pour que le plafond ne coupe pas les candidatures récentes.
+  const fetchAppsFull = async () => {
+    const appsRaw = await fetchAll(
+      "/v1/job-applications",
+      { include: "job,stage,candidate", sort: "-created-at" },
+      100000
+    );
+    console.log("apps: recuperation COMPLETE ->", appsRaw.data.length, "candidatures");
+    return appsRaw.data.map(normalizeApp);
+  };
+
+  const PREV = globalThis.__PREV_DATA__ || null;
+  const prevApps = PREV && Array.isArray(PREV.applications) ? PREV.applications : null;
+
+  let applications;
+  if (prevApps && prevApps.length && PREV.generatedAt) {
+    try {
+      // Fenêtre de sécurité : 48 h avant le dernier build (couvre un build manqué).
+      const cutoff = new Date(new Date(PREV.generatedAt).getTime() - 48 * 3600 * 1000);
+      const c = cfg();
+      const qs = new URLSearchParams({
+        "page[size]": "30",
+        include: "job,stage,candidate",
+        sort: "-updated-at",
+      });
+      let url = `${c.host}/v1/job-applications?${qs.toString()}`;
+      const changed = [];
+      let guard = 0;
+      let stop = false;
+      while (url && !stop && guard < 4000) {
+        guard++;
+        const json = await request(url, c);
+        const rows = Array.isArray(json.data) ? json.data : [];
+        for (const a of rows) {
+          const u = attr(a, "updated-at") || attr(a, "changed-stage-at") || attr(a, "created-at");
+          // Tri décroissant : dès qu'une candidature est antérieure au seuil, tout
+          // le reste l'est aussi -> on arrête la pagination.
+          if (u && new Date(u) < cutoff) { stop = true; break; }
+          changed.push(a);
+        }
+        url = !stop && json.links && json.links.next ? json.links.next : null;
+        if (url) await sleep(120);
+      }
+      const byId = new Map(prevApps.map((a) => [String(a.id), a]));
+      for (const a of changed) byId.set(String(a.id), normalizeApp(a));
+      applications = [...byId.values()];
+      console.log(
+        `apps: recuperation INCREMENTALE -> ${changed.length} modifiees depuis ${cutoff.toISOString()}, total ${applications.length}`
+      );
+      // Garde-fou : le total ne peut que croître (upsert, jamais de suppression).
+      // Un total bien plus petit que le snapshot = anomalie -> repli complet.
+      if (applications.length < prevApps.length * 0.8) {
+        console.warn("apps: total incremental suspect (" + applications.length + " < " + prevApps.length + "), repli complet");
+        applications = await fetchAppsFull();
+      }
+    } catch (e) {
+      console.warn("apps: incremental impossible (" + e.message + ") -> repli complet");
+      applications = await fetchAppsFull();
+    }
+  } else {
+    applications = await fetchAppsFull();
+  }
 
   return {
     generatedAt: new Date().toISOString(),
@@ -440,6 +501,21 @@ function mockDataset() {
 }
 
 import fs from "node:fs";
+
+// Charge le snapshot précédent (data.js déjà committé, présent après le checkout
+// du repo) pour permettre la récupération incrémentale des candidatures.
+try {
+  if (fs.existsSync("data.js")) {
+    const prevTxt = fs.readFileSync("data.js", "utf8");
+    const oi = prevTxt.indexOf("{");
+    const oj = prevTxt.lastIndexOf("}");
+    if (oi >= 0 && oj >= 0) globalThis.__PREV_DATA__ = JSON.parse(prevTxt.slice(oi, oj + 1));
+  }
+} catch (e) {
+  console.warn("snapshot precedent illisible (recuperation complete):", e.message);
+  globalThis.__PREV_DATA__ = null;
+}
+
 const live = hasApiKey();
 const ds = live ? await fetchDataset() : mockDataset();
 fs.writeFileSync("data.js", "window.__TT_DATA__=" + JSON.stringify(ds) + ";");
