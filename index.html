@@ -47,6 +47,9 @@
   .card .note{color:var(--muted);font-size:12px;margin:-6px 0 12px;}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   th{text-align:left;color:var(--muted);font-weight:600;padding:8px 8px;border-bottom:2px solid var(--line);white-space:nowrap;}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{color:var(--accent);}
+  th.sorted{color:var(--accent);}
   td{padding:10px 8px;border-top:1px solid #F2ECE3;vertical-align:middle;}
   td.job a{font-weight:700;text-decoration:none;border-bottom:1px dotted var(--muted);}
   td.job a:hover{color:var(--accent);border-color:var(--accent);}
@@ -292,21 +295,59 @@
         const cat={};ACTIVE.forEach(s=>cat[s]=0);ja.forEach(a=>{if(cat[a.stageType]!=null)cat[a.stageType]++;});
         const age=gen?Math.round((gen-new Date(j.createdAt))/86400000):null;
         return {j,list,cat,tot:ja.length,rej,age};
-      }).sort((a,b)=>b.tot-a.tot);
-      const head='<tr><th>Annonce</th><th>Boutique</th><th>Pôle / Grade</th><th class="num">Ancienneté</th><th>Répartition</th><th>Étapes (nommées)</th><th class="num">Rejetés</th><th class="num">Actives</th></tr>';
+      });
+      liveRowsCache=rows;
+      renderLiveTable();
+    }
+
+    // ---- tableau des annonces ouvertes : tri par colonne ----
+    let liveSort={k:'tot',dir:-1};
+    let liveRowsCache=[];
+    function liveVal(r,k){
+      if(k==='title') return (r.j.title||'').toLowerCase();
+      if(k==='boutique') return (r.j.locationIds||[]).map(locAcr).filter(Boolean).sort().join(',').toLowerCase();
+      if(k==='pole') return ((r.j.pole||'')+' '+(r.j.unit||'')).toLowerCase();
+      if(k==='age') return r.age==null?-1:r.age;
+      if(k==='rej') return r.rej||0;
+      return r.tot||0; // 'tot'
+    }
+    function liveCmp(a,b){
+      const av=liveVal(a,liveSort.k), bv=liveVal(b,liveSort.k);
+      let c=(typeof av==='number'&&typeof bv==='number')?av-bv:String(av).localeCompare(String(bv),'fr');
+      if(c===0) c=b.tot-a.tot; // départage par nb d'actives
+      return c*liveSort.dir;
+    }
+    function renderLiveTable(){
+      const rows=liveRowsCache.slice().sort(liveCmp);
+      const cols=[['title','Annonce',0],['boutique','Boutique',0],['pole','Pôle / Grade',0],['age','Ancienneté',1],[null,'Étapes (nommées)',0],['rej','Rejetés',1],['tot','Actives',1]];
+      const head='<tr>'+cols.map(c=>{
+        const k=c[0],label=c[1],num=c[2];
+        if(!k) return `<th${num?' class="num"':''}>${label}</th>`;
+        const on=liveSort.k===k,arrow=on?(liveSort.dir<0?' ▼':' ▲'):'';
+        return `<th data-k="${k}" class="sortable${num?' num':''}${on?' sorted':''}">${label}${arrow}</th>`;
+      }).join('')+'</tr>';
       const body=rows.map(r=>{
-        const seg=ACTIVE.map(k=>r.tot?`<span style="width:${r.cat[k]/r.tot*100}%;background:${CATCOLOR[k]}"></span>`:'').join('');
         const chips=r.list.map(s=>`<span class="stchip" style="border-left-color:${CATCOLOR[s.cat]}">${esc(s.name)} <b>${s.n}</b></span>`).join('')||'<span class="muted">—</span>';
         return `<tr><td class="job"><a href="${jobUrl(r.j.id)}" target="_blank" rel="noopener">${esc(r.j.title)}</a></td>`
           +`<td>${boutiques(r.j)}</td>`
           +`<td><span class="tag">${esc(r.j.pole||'—')}</span>${r.j.unit?`<span class="tag">${esc(r.j.unit)}</span>`:''}</td>`
           +`<td class="num">${r.age!=null?r.age+' j':'—'}</td>`
-          +`<td><div class="stbar">${seg}</div></td>`
           +`<td>${chips}</td>`
           +`<td class="num" style="color:var(--bad)">${r.rej?fmt(r.rej):''}</td>`
           +`<td class="num"><b>${fmt(r.tot)}</b></td></tr>`;
       }).join('');
-      $('#liveTable').innerHTML=head+body+(rows.length?'':'<tr><td colspan="8" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
+      const tbl=$('#liveTable');
+      tbl.innerHTML=head+body+(rows.length?'':'<tr><td colspan="7" class="muted">Aucune annonce ouverte pour ce filtre.</td></tr>');
+      if(!tbl.__sortBound){
+        tbl.__sortBound=true;
+        tbl.addEventListener('click',e=>{
+          const th=e.target.closest('th[data-k]'); if(!th) return;
+          const k=th.getAttribute('data-k');
+          if(liveSort.k===k) liveSort.dir*=-1;
+          else { liveSort.k=k; liveSort.dir=(k==='title'||k==='boutique'||k==='pole')?1:-1; }
+          renderLiveTable();
+        });
+      }
     }
 
     // =================== HISTORIQUE ===================
