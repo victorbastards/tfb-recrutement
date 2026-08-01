@@ -423,11 +423,13 @@
       const cat=state.alertCat||'stages';
       $$('#alertCat button').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
       const evAll=await ensureStageEvents();
-      const useEvents=evAll.length>0;
+      // Journal désactivé tant qu'il n'a pas ~14 j d'historique : on lit l'état
+      // courant (candidats actuellement à l'étape), méthode fiable immédiatement.
+      const useEvents=false;
       const winTxt=days?((days<=2?('dans les '+(days*24)+' h'):('depuis '+days+' j'))):'tout l\'historique';
       $('#alertSince').textContent=cat==='evals'
         ?('· remplies '+winTxt)
-        :('· entrées '+winTxt+(useEvents?' · via journal d\'entrées':' · état courant (journal en cours)'));
+        :('· entrées '+winTxt+' · état courant');
       const blocksHtml=ALERT_TARGETS.map(t=>{
         const evKey = t.cat==='hired' ? 'hired' : t.nk;
         let items;
