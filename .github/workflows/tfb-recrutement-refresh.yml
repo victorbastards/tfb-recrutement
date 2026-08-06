@@ -1,14 +1,21 @@
 name: Rafraîchir les données recrutement
 
-# Extrait Teamtailor UNE FOIS PAR JOUR et commit data.js dans le repo.
-# Le build Netlify réutilise ensuite ce data.js (build rapide).
-# Nécessite le secret GitHub : TEAMTAILOR_API_KEY (et éventuellement
-# TEAMTAILOR_STACK = eu, TEAMTAILOR_API_VERSION = 20240904).
+# Extrait Teamtailor et commit data.js dans le repo (le build Netlify reutilise ce data.js).
+# Necessite le secret GitHub : TEAMTAILOR_API_KEY (+ TEAMTAILOR_STACK, TEAMTAILOR_API_VERSION).
+#
+# FIABILITE : les crons GitHub Actions derivent souvent de 2 a 3 h (voire sautent) quand les
+# runners sont charges. Historique de ce repo : un cron a 07:20 Paris se declenchait vers
+# 09:40-10:40 ; comme le controle du dashboard tourne a 08:05, la donnee n etait pas prete.
+# On planifie donc PLUSIEURS runs tot et a des minutes creuses pour qu au moins un finisse
+# avant 08:00 Paris. Le commit ne part que s il y a un changement et un concurrency group
+# empeche les chevauchements : les tentatives redondantes sont sans risque.
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '20 5 * * *'   # ~07:20 Paris (été) / 06:20 (hiver)
+    - cron: '17 2 * * *'   # ~04:17 Paris ete / 03:17 hiver - run principal tres tot
+    - cron: '17 4 * * *'   # ~06:17 Paris ete - filet 1
+    - cron: '43 5 * * *'   # ~07:43 Paris ete - filet 2 (avant le controle de 08:05)
 
 permissions:
   contents: write
@@ -26,33 +33,44 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
 
-      - name: Extraction Teamtailor -> data.js
+      # Retry : une extraction peut echouer sur un hoquet reseau / rate-limit.
+      - name: Extraction Teamtailor -> data.js (avec retry)
         env:
           TEAMTAILOR_API_KEY: ${{ secrets.TEAMTAILOR_API_KEY }}
           TEAMTAILOR_STACK: ${{ secrets.TEAMTAILOR_STACK }}
           TEAMTAILOR_API_VERSION: ${{ secrets.TEAMTAILOR_API_VERSION }}
         run: |
           cp build-data.txt build-data.mjs
-          node build-data.mjs
+          n=0
+          until [ $n -ge 3 ]; do
+            if node build-data.mjs; then echo Extraction OK; break; fi
+            n=$((n+1)); echo Retry extraction $n/3 dans 60s; sleep 60
+          done
+          if [ $n -ge 3 ]; then echo '::error::Extraction Teamtailor en echec apres 3 tentatives'; exit 1; fi
 
-      # Journal des entrées dans les étapes clés (Vivier Vidéo Validé / Entretien
-      # Boutique / Offre / Recruté), par différence de snapshots quotidiens.
-      - name: Journal des evenements d'etape
-        run: node snapshot-events.mjs
+      # Garde-fou : ne pas committer un data.js vide ou tronque.
+      - name: Verifier data.js
+        run: |
+          test -f data.js || { echo '::error::data.js absent'; exit 1; }
+          bytes=$(wc -c < data.js); echo data.js = $bytes octets
+          [ $bytes -ge 1000000 ] || { echo '::error::data.js trop petit'; exit 1; }
 
-      # Évaluations Teamtailor (Kit entretien B1) : interviews "published" -> evaluations.json
+      # Non bloquant : ne doit pas empecher le commit du data.js.
+      - name: Journal des evenements d etape
+        run: node snapshot-events.mjs || echo '::warning::snapshot-events a echoue'
+
       - name: Evaluations Teamtailor -> evaluations.json
         env:
           TEAMTAILOR_API_KEY: ${{ secrets.TEAMTAILOR_API_KEY }}
           TEAMTAILOR_STACK: ${{ secrets.TEAMTAILOR_STACK }}
           TEAMTAILOR_API_VERSION: ${{ secrets.TEAMTAILOR_API_VERSION }}
-        run: node fetch-evaluations.mjs
+        run: node fetch-evaluations.mjs || echo '::warning::fetch-evaluations a echoue'
 
       - name: Commit data.js + journal + evaluations
         run: |
-          git config user.name "tfb-bot"
-          git config user.email "bot@thefrenchbastards.fr"
+          git config user.name tfb-bot
+          git config user.email bot@thefrenchbastards.fr
           git add data.js stage-snapshot.json stage-events.json evaluations.json
-          git commit -m "chore: refresh Teamtailor data $(date -u +%FT%TZ)" || echo "rien a committer"
+          git commit -m 'chore: refresh Teamtailor data' || echo rien a committer
           git pull --rebase origin main || true
           git push
