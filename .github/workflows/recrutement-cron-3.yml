@@ -1,0 +1,17 @@
+name: Recrutement cron 3 (~07:11 Paris)
+
+# Filet 2 -- dernier passage avant le controle dashboard de 08:05 Paris.
+# Fichier separe : c'est ce qui garantit qu'il partira meme si les crons 1 et 2
+# sont encore en attente (c'etait exactement le bug du 27/08 au 02/09).
+
+on:
+  schedule:
+    - cron: '11 5 * * *'   # 07:11 Paris (ete) / 06:11 (hiver)
+  workflow_dispatch:   # test manuel du chemin appelant
+
+jobs:
+  call:
+    uses: ./.github/workflows/tfb-recrutement-refresh.yml
+    secrets: inherit
+    permissions:
+      contents: write
