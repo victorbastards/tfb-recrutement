@@ -1,0 +1,16 @@
+name: Recrutement cron 1 (~03:23 Paris)
+
+# Un cron par FICHIER : la suppression des runs planifies en attente est par
+# workflow, donc si ce run part en retard il ne bloque plus les crons 2 et 3.
+# Minute creuse (ni :00 ni :15/:30/:45) pour limiter la derive GitHub.
+
+on:
+  schedule:
+    - cron: '23 1 * * *'   # 03:23 Paris (ete) / 02:23 (hiver)
+
+jobs:
+  call:
+    uses: ./.github/workflows/tfb-recrutement-refresh.yml
+    secrets: inherit
+    permissions:
+      contents: write
