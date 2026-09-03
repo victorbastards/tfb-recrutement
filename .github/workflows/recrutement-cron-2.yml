@@ -1,0 +1,15 @@
+name: Recrutement cron 2 (~05:37 Paris)
+
+# Filet 1 -- fichier separe pour ne pas etre avale par un cron 1 en retard.
+# Si data.js est deja frais, le workflow appele s'arrete tout seul (etape "fresh").
+
+on:
+  schedule:
+    - cron: '37 3 * * *'   # 05:37 Paris (ete) / 04:37 (hiver)
+
+jobs:
+  call:
+    uses: ./.github/workflows/tfb-recrutement-refresh.yml
+    secrets: inherit
+    permissions:
+      contents: write
