@@ -6,6 +6,7 @@ name: Recrutement cron 2 (~05:37 Paris)
 on:
   schedule:
     - cron: '37 3 * * *'   # 05:37 Paris (ete) / 04:37 (hiver)
+  workflow_dispatch:   # test manuel du chemin appelant
 
 jobs:
   call:
