@@ -3,10 +3,15 @@ name: Recrutement cron 1 (~03:23 Paris)
 # Un cron par FICHIER : la suppression des runs planifies en attente est par
 # workflow, donc si ce run part en retard il ne bloque plus les crons 2 et 3.
 # Minute creuse (ni :00 ni :15/:30/:45) pour limiter la derive GitHub.
+#
+# workflow_dispatch sert uniquement a tester ce chemin appelant a la main
+# (verifier que `secrets: inherit` transmet bien les secrets Teamtailor)
+# sans attendre 03:23 du matin.
 
 on:
   schedule:
     - cron: '23 1 * * *'   # 03:23 Paris (ete) / 02:23 (hiver)
+  workflow_dispatch:
 
 jobs:
   call:
