@@ -561,8 +561,8 @@
       var counts={}; weeks.forEach(function(w){counts[w]=[0,0,0,0,0,0];});
       Object.keys(seen).forEach(function(k){ var o=seen[k]; if(counts[o.wk]) counts[o.wk][o.level]++; });
       var labels=weeks.map(function(w){var p=w.split('-');return p[2]+'/'+p[1];});
-      var ds=STAT_LABELS.map(function(lab,i){return {label:lab,data:weeks.map(function(w){return counts[w][i];}),borderColor:STAT_COLORS[i],backgroundColor:STAT_COLORS[i],tension:.25,pointRadius:weeks.length>20?0:3,borderWidth:2,fill:false};});
-      draw('statsWeekly',{type:'line',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#8A7B6B',boxWidth:12,usePointStyle:true}}},scales:{x:{ticks:{color:'#8A7B6B',maxRotation:0,autoSkip:true}},y:{beginAtZero:true,ticks:{color:'#8A7B6B',precision:0}}}}});
+      var ds=STAT_LABELS.map(function(lab,i){ if(i===0){ return {type:'bar',label:lab+' (éch. droite)',data:weeks.map(function(w){return counts[w][i];}),backgroundColor:'rgba(224,164,88,.35)',borderColor:STAT_COLORS[0],borderWidth:1,yAxisID:'y1',order:3}; } return {type:'line',label:lab,data:weeks.map(function(w){return counts[w][i];}),borderColor:STAT_COLORS[i],backgroundColor:STAT_COLORS[i],tension:.25,pointRadius:weeks.length>20?0:3,borderWidth:2,fill:false,yAxisID:'y',order:1}; });
+      draw('statsWeekly',{type:'bar',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#8A7B6B',boxWidth:12,usePointStyle:true}}},scales:{x:{ticks:{color:'#8A7B6B',maxRotation:0,autoSkip:true}},y:{position:'left',beginAtZero:true,ticks:{color:'#8A7B6B',precision:0},title:{display:true,text:'Étapes vidéo → recruté',color:'#8A7B6B'}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{color:'#C8772E',precision:0},title:{display:true,text:'Candidatures reçues',color:'#C8772E'}}}}});
     }
     function renderStats(){
       buildStatsFilters();
