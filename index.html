@@ -72,6 +72,10 @@
   .muted{color:var(--muted);}
   .hidden{display:none !important;}
   @media(max-width:680px){.frow{grid-template-columns:110px 1fr;}.fmeta{grid-column:2;text-align:left;}}
+  #statsFunnel .frow{grid-template-columns:180px 1fr 240px;gap:14px;align-items:center}
+  #statsFunnel .fmeta{line-height:1.5;text-align:right}
+  #statsFunnel .fmeta .n{color:var(--ink);font-weight:800;font-size:15px}
+  @media(max-width:680px){#statsFunnel .frow{grid-template-columns:130px 1fr}#statsFunnel .fmeta{grid-column:2;text-align:left}}
 </style>
 </head>
 <body>
@@ -547,7 +551,7 @@
       $('#statsKpis').innerHTML=[['Candidatures reçues',fmt(reached[0])],['Recrutés',fmt(reached[5])],['Taux de recrutement',pct(reached[5],reached[0])+' %'],['Annonces',fmt(vj.length)]].map(function(k){return '<div class="kpi"><div class="v">'+k[1]+'</div><div class="l">'+k[0]+'</div></div>';}).join('');
       $('#statsFunnel').innerHTML=STAT_LABELS.map(function(lab,i){
         var n=reached[i]; var stepPct=i===0?null:pct(n,reached[i-1]); var totPct=pct(n,inbox);
-        var meta='<b>'+fmt(n)+'</b> · '+(i===0?'100 % (base)':stepPct+' % vs étape préc.')+' · <b>'+totPct+' %</b> du total';
+        var meta='<div><span class="n">'+fmt(n)+'</span> <span class="muted">candidats</span></div><div class="muted">'+(i===0?'base · 100 % du total':stepPct+' % vs préc. · '+totPct+' % du total')+'</div>';
         return '<div class="frow"><div>'+lab+'</div><div class="ftrack"><div class="ffill" style="width:'+Math.max(2,n/inbox*100)+'%;background:'+STAT_COLORS[i]+'"></div></div><div class="fmeta">'+meta+'</div></div>';
       }).join('');
     }
