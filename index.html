@@ -167,6 +167,8 @@
         <div class="filters" style="padding:0;border:0">
           <label class="fld">Grade (unité)<select id="stGrade"></select></label>
           <label class="fld">Lieu<select id="stLieu"></select></label>
+          <label class="fld">Du<input type="date" id="stFrom"></label>
+          <label class="fld">Au<input type="date" id="stTo"></label>
         </div>
         <div class="note" id="stNote" style="margin-top:10px"></div>
       </div>
@@ -175,6 +177,11 @@
         <h3>Entonnoir de recrutement — Vente</h3>
         <div class="note">Candidatures des annonces de vente créées à partir du 12/06/2026. « Atteint » = candidat actuellement à cette étape ou plus loin (les rejetés sont comptés jusqu'à l'étape atteinte). % vs étape précédente et % du total (boîte de réception).</div>
         <div class="funnel" id="statsFunnel"></div>
+      </div>
+      <div class="card">
+        <h3>Entrées par étape — par semaine</h3>
+        <div class="note">Nombre de candidats entrés dans chaque étape, par semaine (lundi). « Candidatures reçues » = date de candidature (fiable) ; étapes suivantes = date d'entrée connue (état courant + journal des passages). L'historique des étapes déjà quittées est partiel (limite Teamtailor). Clique une étape dans la légende pour l'isoler.</div>
+        <div class="canvas-wrap"><canvas id="statsWeekly"></canvas></div>
       </div>
     </section>
   </main>
@@ -537,14 +544,34 @@
       html+='<optgroup label="Périmètres">'+peris.map(function(p){return '<option value="peri:'+p+'">'+p+' (tout)</option>';}).join('')+'</optgroup>';
       peris.forEach(function(p){ html+='<optgroup label="'+p+'">'+byPeri[p].sort(function(a,b){return a.name.localeCompare(b.name,'fr');}).map(function(l){return '<option value="loc:'+l.id+'">'+esc(l.name)+'</option>';}).join('')+'</optgroup>'; });
       var s=$('#stLieu'); s.innerHTML=html; s.onchange=function(){state.stLieu=s.value;renderStats();};
+      var minD='2026-06-12'; var f=$('#stFrom'), t=$('#stTo'); f.min=t.min=minD; f.max=t.max=dMax; state.stFrom=state.stFrom||minD; state.stTo=state.stTo||dMax; f.value=state.stFrom; t.value=state.stTo; f.onchange=function(){state.stFrom=f.value||minD; renderStats();}; t.onchange=function(){state.stTo=t.value||dMax; renderStats();};
     }
     function jobLieuPass(j,selv){ if(!selv) return true; var ids=(j.locationIds||[]).map(String); if(selv.indexOf('peri:')===0){var p=selv.slice(5); return ids.some(function(id){return periOf(locById[id]||'')===p;});} if(selv.indexOf('loc:')===0){return ids.indexOf(selv.slice(4))>=0;} return true; }
+        function weekMonday(dstr){ var d=new Date(String(dstr).slice(0,10)+'T00:00:00Z'); if(isNaN(d))return null; var day=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-day); return d.toISOString().slice(0,10); }
+    async function drawStatsWeekly(sel,dfrom,dto){
+      var jidset={}; sel.forEach(function(a){jidset[a.jobId]=1;});
+      var wk0=weekMonday(dfrom), wkE=weekMonday(dto);
+      var seen={};
+      function addEv(cand,job,level,dateStr){ var wk=weekMonday(dateStr); if(!wk)return; if(wk<wk0||wk>wkE)return; var k=cand+'|'+job+'|'+level; if(seen[k])return; seen[k]={wk:wk,level:level}; }
+      sel.forEach(function(a){ addEv(a.candidateId,a.jobId,0,a.createdAt); var m=stLevelOf(a); if(m>=1) addEv(a.candidateId,a.jobId,m,a.changedStageAt||a.createdAt); });
+      var keymap={'vivier video valide':2,'entretien boutique':3,'offre':4,'hired':5};
+      var evs=await ensureStageEvents();
+      (evs||[]).forEach(function(e){ if(!jidset[e.jobId])return; var lvl=e.stageKey==='hired'?5:(keymap[e.stageKey]!=null?keymap[e.stageKey]:null); if(lvl==null)return; addEv(e.candidateId,e.jobId,lvl,e.at); });
+      var weeks=[]; var cur=wk0, guard=0; while(cur&&cur<=wkE&&guard<200){ weeks.push(cur); var d=new Date(cur+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+7); cur=d.toISOString().slice(0,10); guard++; }
+      var counts={}; weeks.forEach(function(w){counts[w]=[0,0,0,0,0,0];});
+      Object.keys(seen).forEach(function(k){ var o=seen[k]; if(counts[o.wk]) counts[o.wk][o.level]++; });
+      var labels=weeks.map(function(w){var p=w.split('-');return p[2]+'/'+p[1];});
+      var ds=STAT_LABELS.map(function(lab,i){return {label:lab,data:weeks.map(function(w){return counts[w][i];}),borderColor:STAT_COLORS[i],backgroundColor:STAT_COLORS[i],tension:.25,pointRadius:weeks.length>20?0:3,borderWidth:2,fill:false};});
+      draw('statsWeekly',{type:'line',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#8A7B6B',boxWidth:12,usePointStyle:true}}},scales:{x:{ticks:{color:'#8A7B6B',maxRotation:0,autoSkip:true}},y:{beginAtZero:true,ticks:{color:'#8A7B6B',precision:0}}}}});
+    }
     function renderStats(){
       buildStatsFilters();
       var grade=state.stGrade||'', lieu=state.stLieu||'';
       var vj=statsVenteJobs().filter(function(j){return (!grade||j.unit===grade) && jobLieuPass(j,lieu);});
       var jids={}; vj.forEach(function(j){jids[j.id]=1;});
-      var sel=apps.filter(function(a){return jids[a.jobId];});
+      var dfrom=state.stFrom||'2026-06-12', dto=state.stTo||dMax;
+      var sel=apps.filter(function(a){ if(!jids[a.jobId])return false; var d=(a.createdAt||'').slice(0,10); return d>=dfrom && d<=dto; });
+      drawStatsWeekly(sel,dfrom,dto);
       var reached=[0,1,2,3,4,5].map(function(k){return sel.filter(function(a){return stLevelOf(a)>=k;}).length;});
       var inbox=reached[0]||1;
       $('#stNote').innerHTML='Base : <b>'+fmt(vj.length)+'</b> annonce(s) de vente créée(s) à partir du 12/06/2026 · <b>'+fmt(sel.length)+'</b> candidature(s).';
