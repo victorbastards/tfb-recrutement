@@ -88,7 +88,7 @@
     <div class="seg" id="viewSeg">
       <button data-view="live" class="active">Live</button>
       <button data-view="hist">Historique</button>
-      <button data-view="alertes">Alertes</button>
+      <button data-view="alertes">Alertes</button><button data-view="stats">Statistiques</button>
     </div>
     <div class="spacer"></div>
     <div id="histDates" class="hidden" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
@@ -157,6 +157,21 @@
         </div>
       </div>
       <div id="alertBlocks"></div>
+    </section>
+    <section id="viewStats" class="hidden">
+      <div class="card" style="margin-top:8px">
+        <div class="filters" style="padding:0;border:0">
+          <label class="fld">Grade (unité)<select id="stGrade"></select></label>
+          <label class="fld">Lieu<select id="stLieu"></select></label>
+        </div>
+        <div class="note" id="stNote" style="margin-top:10px"></div>
+      </div>
+      <div class="grid" id="statsKpis" style="margin-top:16px"></div>
+      <div class="card">
+        <h3>Entonnoir de recrutement — Vente</h3>
+        <div class="note">Candidatures des annonces de vente créées à partir du 12/06/2026. « Atteint » = candidat actuellement à cette étape ou plus loin (les rejetés sont comptés jusqu'à l'étape atteinte). % vs étape précédente et % du total (boîte de réception).</div>
+        <div class="funnel" id="statsFunnel"></div>
+      </div>
     </section>
   </main>
 
@@ -247,6 +262,8 @@
       $('#viewHist').classList.toggle('hidden',state.view!=='hist');
       $('#viewAlertes').classList.toggle('hidden',state.view!=='alertes');
       $('#histDates').classList.toggle('hidden',state.view!=='hist');
+      $('#viewStats').classList.toggle('hidden',state.view!=='stats');
+      document.querySelector('.filters').classList.toggle('hidden',state.view==='stats');
       render();
     }));
 
@@ -496,7 +513,45 @@
       $('#alertBlocks').innerHTML = cat==='evals' ? evCard : blocksHtml;
     }
 
-    function render(){state.view==='live'?renderLive():state.view==='hist'?renderHist():renderAlertes();}
+        // =================== STATISTIQUES (entonnoir Vente) ===================
+    var STAT_CUT='2026-06-12';
+    var STAT_LABELS=['Candidatures reçues','Entretien vidéo','Entretien vidéo validé','Entretien boutique','Offre','Recruté'];
+    var STAT_COLORS=[gv('--s1'),gv('--s2'),gv('--s3'),gv('--s4'),gv('--s5'),gv('--good')];
+    var statsInit=false;
+    function periOf(n){ if(/bordeaux/i.test(n)) return 'Bordeaux'; if(/lille/i.test(n)) return 'Lille'; return 'Paris'; }
+    function stLevelOf(a){ var st=stageById[a.stageId]; var cat=(st&&st.category)||a.stageType||'inbox'; var nk=st?norm(st.name):''; if(cat==='hired')return 5; if(cat==='offer'||nk==='offre')return 4; if(/entretien.*boutique/.test(nk))return 3; if(nk==='vivier video valide')return 2; if(nk==='entretien video')return 1; return 0; }
+    function statsVenteJobs(){ return jobs.filter(function(j){return j.pole==='Vente' && (j.createdAt||'').slice(0,10)>=STAT_CUT;}); }
+    function buildStatsFilters(){
+      if(statsInit) return; statsInit=true;
+      var g=$('#stGrade'); g.innerHTML='<option value="">Tous grades</option><option value="B1">B1</option><option value="B2">B2</option><option value="B3">B3</option>';
+      g.onchange=function(){state.stGrade=g.value;renderStats();};
+      var vj=statsVenteJobs(); var locSet={}; vj.forEach(function(j){(j.locationIds||[]).forEach(function(id){locSet[id]=1;});});
+      var byPeri={Paris:[],Lille:[],Bordeaux:[]};
+      Object.keys(locSet).forEach(function(id){var nm=locById[id]||''; if(!nm)return; byPeri[periOf(nm)].push({id:id,name:nm});});
+      var html='<option value="">Tous les lieux</option>';
+      var peris=['Paris','Lille','Bordeaux'].filter(function(p){return byPeri[p].length;});
+      html+='<optgroup label="Périmètres">'+peris.map(function(p){return '<option value="peri:'+p+'">'+p+' (tout)</option>';}).join('')+'</optgroup>';
+      peris.forEach(function(p){ html+='<optgroup label="'+p+'">'+byPeri[p].sort(function(a,b){return a.name.localeCompare(b.name,'fr');}).map(function(l){return '<option value="loc:'+l.id+'">'+esc(l.name)+'</option>';}).join('')+'</optgroup>'; });
+      var s=$('#stLieu'); s.innerHTML=html; s.onchange=function(){state.stLieu=s.value;renderStats();};
+    }
+    function jobLieuPass(j,selv){ if(!selv) return true; var ids=(j.locationIds||[]).map(String); if(selv.indexOf('peri:')===0){var p=selv.slice(5); return ids.some(function(id){return periOf(locById[id]||'')===p;});} if(selv.indexOf('loc:')===0){return ids.indexOf(selv.slice(4))>=0;} return true; }
+    function renderStats(){
+      buildStatsFilters();
+      var grade=state.stGrade||'', lieu=state.stLieu||'';
+      var vj=statsVenteJobs().filter(function(j){return (!grade||j.unit===grade) && jobLieuPass(j,lieu);});
+      var jids={}; vj.forEach(function(j){jids[j.id]=1;});
+      var sel=apps.filter(function(a){return jids[a.jobId];});
+      var reached=[0,1,2,3,4,5].map(function(k){return sel.filter(function(a){return stLevelOf(a)>=k;}).length;});
+      var inbox=reached[0]||1;
+      $('#stNote').innerHTML='Base : <b>'+fmt(vj.length)+'</b> annonce(s) de vente créée(s) à partir du 12/06/2026 · <b>'+fmt(sel.length)+'</b> candidature(s).';
+      $('#statsKpis').innerHTML=[['Candidatures reçues',fmt(reached[0])],['Recrutés',fmt(reached[5])],['Taux de recrutement',pct(reached[5],reached[0])+' %'],['Annonces',fmt(vj.length)]].map(function(k){return '<div class="kpi"><div class="v">'+k[1]+'</div><div class="l">'+k[0]+'</div></div>';}).join('');
+      $('#statsFunnel').innerHTML=STAT_LABELS.map(function(lab,i){
+        var n=reached[i]; var stepPct=i===0?null:pct(n,reached[i-1]); var totPct=pct(n,inbox);
+        var meta='<b>'+fmt(n)+'</b> · '+(i===0?'100 % (base)':stepPct+' % vs étape préc.')+' · <b>'+totPct+' %</b> du total';
+        return '<div class="frow"><div>'+lab+'</div><div class="ftrack"><div class="ffill" style="width:'+Math.max(2,n/inbox*100)+'%;background:'+STAT_COLORS[i]+'"></div></div><div class="fmeta">'+meta+'</div></div>';
+      }).join('');
+    }
+    function render(){ if(state.view==='live')return renderLive(); if(state.view==='hist')return renderHist(); if(state.view==='stats')return renderStats(); return renderAlertes(); }
     render();
   });
 })();
