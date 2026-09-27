@@ -175,7 +175,7 @@
       <div class="grid" id="statsKpis" style="margin-top:16px"></div>
       <div class="card">
         <h3>Entonnoir de recrutement — Vente</h3>
-        <div class="note">Candidatures des annonces de vente créées à partir du 12/06/2026. « Atteint » = candidat actuellement à cette étape ou plus loin (les rejetés sont comptés jusqu'à l'étape atteinte). % vs étape précédente et % du total (boîte de réception).</div>
+        <div class="note">Candidatures des annonces de vente créées à partir du 12/06/2026. « Atteint » = candidat actuellement à cette étape ou plus loin (les rejetés sont comptés jusqu'à l'étape atteinte). % vs étape précédente et % du total (boîte de réception). « Vidéo » = candidats entrés dans le circuit vidéo ou au-delà (y compris « à revoir » / « à refuser » après vidéo).</div>
         <div class="funnel" id="statsFunnel"></div>
       </div>
       <div class="card">
@@ -530,7 +530,7 @@
     var STAT_COLORS=[gv('--s1'),gv('--s2'),gv('--s3'),gv('--s4'),gv('--s5'),gv('--good')];
     var statsInit=false;
     function periOf(n){ if(/bordeaux/i.test(n)) return 'Bordeaux'; if(/lille/i.test(n)) return 'Lille'; return 'Paris'; }
-    function stLevelOf(a){ var st=stageById[a.stageId]; var cat=(st&&st.category)||a.stageType||'inbox'; var nk=st?norm(st.name):''; if(cat==='hired')return 5; if(cat==='offer'||nk==='offre')return 4; if(/entretien.*boutique/.test(nk))return 3; if(nk==='vivier video valide')return 2; if(nk==='entretien video')return 1; return 0; }
+    function stLevelOf(a){ var st=stageById[a.stageId]; var cat=(st&&st.category)||a.stageType||'inbox'; var nk=st?norm(st.name):''; if(cat==='hired')return 5; if(cat==='offer'||nk==='offre')return 4; if(/entretien.*boutique/.test(nk))return 3; if(/vivier.*video.*valide|video valide/.test(nk))return 2; if(nk==='entretien video'||nk==='a revoir'||nk==='a refuser'||/video/.test(nk))return 1; return 0; }
     function statsVenteJobs(){ return jobs.filter(function(j){return j.pole==='Vente' && (j.createdAt||'').slice(0,10)>=STAT_CUT;}); }
     function buildStatsFilters(){
       if(statsInit) return; statsInit=true;
